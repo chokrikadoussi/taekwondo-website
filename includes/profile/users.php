@@ -23,17 +23,7 @@ $fields = ['id', 'nom_complet', 'email', 'role', 'date_creation', 'date_modifica
 $formatters = [
     'role' => function ($val) {
         // parenthésage correct pour PHP 8+
-        $classes = $val === 'admin'
-            ? 'bg-red-100 text-red-800'
-            : (
-                $val === 'parent'
-                ? 'bg-blue-100 text-blue-800'
-                : (
-                    $val === 'membre'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-800'
-                )
-            );
+        $classes = $val === 'admin' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
 
         return '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium '
             . $classes
