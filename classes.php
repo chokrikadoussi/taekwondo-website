@@ -12,7 +12,7 @@ $classes = $pdo
       SELECT
         id,
         nom,
-        level,
+        niveau,
         SUBSTRING(description, 1, 150) AS extrait_desc,
         description
       FROM classes
@@ -45,7 +45,7 @@ $classes = $pdo
 
                     <h2 class="text-xl font-bold mb-1"><?= htmlspecialchars($c['nom'], ENT_QUOTES) ?></h2>
                     <p class="text-sm text-indigo-600 mb-3 uppercase tracking-wide">
-                        <?= htmlspecialchars($c['level'], ENT_QUOTES) ?>
+                        <?= htmlspecialchars($c['niveau'], ENT_QUOTES) ?>
                     </p>
 
                     <p class="text-gray-700 flex-grow">
