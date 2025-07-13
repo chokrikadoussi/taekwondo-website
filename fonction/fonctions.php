@@ -721,18 +721,19 @@ function getAllAuthors(): array
 /**
  * Insère un nouvel article.
  */
-function enregistrerPost(array $d): bool
+function enregistrerPost(array $d)
 {
     $pdo = connexionBaseDeDonnees();
     $stmt = $pdo->prepare("
     INSERT INTO posts (titre, contenu, auteur)
     VALUES (:titre,:contenu,:auteur)
   ");
-    return $stmt->execute([
+    $stmt->execute([
         'titre' => $d['titre'],
         'contenu' => $d['contenu'],
         'auteur' => $d['auteur'],
     ]);
+    return (int) $pdo->lastInsertId();
 }
 
 /**
@@ -760,11 +761,11 @@ function modifierPost(int $id, array $d): bool
 /**
  * Supprime un article.
  */
-function deletePost(int $id): bool
+function deletePost(int $id)
 {
     $pdo = connexionBaseDeDonnees();
-    $stmt = $pdo->prepare("DELETE FROM posts WHERE id = ?");
-    return $stmt->execute([$id]);
+    $pdo->prepare("DELETE FROM post_tag WHERE post_id = ?")->execute([$id]);
+    $pdo->prepare("DELETE FROM posts     WHERE id       = ?")->execute([$id]);
 }
 
 /**
@@ -779,10 +780,7 @@ function getPostById(int $id): array
       p.titre,
       p.contenu,
       p.auteur,
-      CONCAT(u.prenom,' ',u.nom) AS auteur_nom,
-      DATE_FORMAT(p.created_at,'%d-%m-%Y')   AS created_at,
-      DATE_FORMAT(p.updated_at,'%d-%m-%Y')   AS updated_at,
-      LEFT(p.contenu,150)                    AS excerpt
+      CONCAT(u.prenom,' ',u.nom) AS auteur_nom
     FROM posts AS p
     JOIN users AS u ON u.id = p.auteur
     WHERE p.id = ?
@@ -794,21 +792,82 @@ function getPostById(int $id): array
 /**
  * Récupère tous les articles.
  */
-function getAllPosts(): array
+function getAllPosts(int $taille = 50): array
 {
     $pdo = connexionBaseDeDonnees();
     return $pdo
         ->query("
-      SELECT
+        SELECT
         p.id,
         p.titre,
-        LEFT(p.contenu,150)                    AS excerpt,
-        CONCAT(u.prenom,' ',u.nom) AS auteur,
-        DATE_FORMAT(p.created_at,'%d-%m-%Y')   AS created_at,
-        DATE_FORMAT(p.updated_at,'%d-%m-%Y')   AS updated_at
-      FROM posts p
-      JOIN users u ON u.id = p.auteur
-      ORDER BY p.created_at DESC
+        LEFT(p.contenu,". $taille . ") AS excerpt,
+        CONCAT(u.prenom,' ',u.nom) AS auteur_nom,
+        DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
+        DATE_FORMAT(p.updated_at,'%d-%m-%Y') AS updated_at,
+        (
+            SELECT GROUP_CONCAT(t.name ORDER BY t.name SEPARATOR ', ')
+            FROM post_tag pt
+            JOIN tags t ON t.id = pt.tag_id
+            WHERE pt.post_id = p.id
+        ) AS tags
+        FROM posts p
+        JOIN users u ON u.id = p.auteur
+        ORDER BY p.created_at DESC
     ")
         ->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Synchronise la liste des tags pour un post donné.
+ *
+ * @param int    $postId   ID du post
+ * @param string $tagsCsv  Chaîne CSV des noms de tags
+ */
+function syncPostTags(int $postId, string $tagsCsv): void
+{
+    $pdo = connexionBaseDeDonnees();
+    // 1) Séparer, normaliser et dédupliquer
+    $names = array_filter(array_map('trim', explode(',', $tagsCsv)));
+    $names = array_unique(array_map('mb_strtolower', $names));
+
+    if (count($names) === 0) {
+        // supprimer toutes les liaisons existantes
+        $pdo->prepare("DELETE FROM post_tag WHERE post_id = ?")
+            ->execute([$postId]);
+        return;
+    }
+
+    // 2) Insérer les nouveaux tags (IGNORE les doublons)
+    $iStmt = $pdo->prepare("INSERT IGNORE INTO tags (name) VALUES (:name)");
+    foreach ($names as $n) {
+        $iStmt->execute(['name' => $n]);
+    }
+
+    // 3) Récupérer leurs IDs
+    $placeholders = implode(',', array_fill(0, count($names), '?'));
+    $sStmt = $pdo->prepare("SELECT id FROM tags WHERE name IN ($placeholders)");
+    $sStmt->execute($names);
+    $tagIds = $sStmt->fetchAll(PDO::FETCH_COLUMN);
+
+    // 4) Réinitialiser les liaisons, puis recréer
+    $pdo->prepare("DELETE FROM post_tag WHERE post_id = ?")
+        ->execute([$postId]);
+
+    $ptStmt = $pdo->prepare("INSERT INTO post_tag (post_id, tag_id) VALUES (?, ?)");
+    foreach ($tagIds as $tid) {
+        $ptStmt->execute([$postId, $tid]);
+    }
+}
+
+/**
+ * Retourne la liste des tags (leurs noms) associés à un post.
+ */
+function getTagsForPost(int $postId): array
+{
+    $pdo = connexionBaseDeDonnees();
+    return $pdo
+        ->prepare("SELECT t.name FROM tags t JOIN post_tag pt ON pt.tag_id=t.id WHERE pt.post_id=?")
+        ->execute([$postId])
+        ? $pdo->query("SELECT t.name FROM tags t JOIN post_tag pt ON pt.tag_id=t.id WHERE pt.post_id=$postId")->fetchAll(PDO::FETCH_COLUMN)
+        : [];
 }

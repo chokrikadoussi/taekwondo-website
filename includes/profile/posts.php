@@ -28,6 +28,7 @@ $isEdit = $isEdit || ($isUpdate && !empty($errors));
 if ($isEdit) {
     if ($action === 'edit') {
         $record = getPostById($id) ?: redirectToProfile('posts');
+        $record['tags'] = implode(', ', getTagsForPost($id));
     } else {
         // update raté → on ré-affiche les valeurs que l’utilisateur venait de saisir
         $record = $data;
@@ -39,6 +40,7 @@ elseif ($isCreate) {
         'titre' => '',
         'contenu' => '',
         'auteur' => $_SESSION['user']['id'],
+        'tags' => '',
     ];
 }
 
@@ -50,7 +52,8 @@ if ($isDestroy) {
 }
 
 if ($isStore && empty($errors)) {
-    enregistrerPost($data);
+    $newId = enregistrerPost($data);
+    syncPostTags($newId, $data['tags'] ?? '');
     setFlash('success', 'Article créé.');
     redirectToProfile('posts');
 }
@@ -61,6 +64,7 @@ if ($isUpdate && empty($errors)) {
         'contenu' => $data['contenu'],
         'auteur' => $data['auteur'],
     ]);
+    syncPostTags($id, $data['tags'] ?? '');
     setFlash('success', 'Article mis à jour.');
     redirectToProfile('posts');
 }
@@ -73,8 +77,8 @@ if (!$showForm) {
 }
 
 // 9) Configuration du composant table.php
-$headers = ['ID', 'Titre', 'Extrait', 'Auteur', 'Créé le', 'Modifié le'];
-$fields = ['id', 'titre', 'excerpt', 'auteur_nom', 'created_at', 'updated_at'];
+$headers = ['ID', 'Titre', 'Extrait', 'Auteur', 'Tags', 'Créé le', 'Modifié le'];
+$fields = ['id', 'titre', 'excerpt', 'auteur_nom', 'tags', 'created_at', 'updated_at'];
 $formatters = [
     'excerpt' => fn($txt) => htmlspecialchars(mb_strimwidth(strip_tags($txt), 0, 50, '…'), ENT_QUOTES),
 ];
@@ -157,6 +161,16 @@ $actions = [
             <label class="block text-sm font-medium mb-1">Contenu</label>
             <textarea name="contenu" rows="6" required
                 class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"><?= htmlspecialchars($record['contenu'] ?? '', ENT_QUOTES) ?></textarea>
+        </div>
+
+        <div>
+            <label for="tags" class="block text-sm font-medium text-gray-700">
+                Tags (séparés par des virgules)
+            </label>
+            <input type="text" name="tags" id="tags" value="<?= htmlspecialchars($record['tags'] ?? '') ?>"
+                placeholder="ex : compétition, stage, club"
+                class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500">
+            <small class="text-gray-500">Chaque mot sera transformé en tag.</small>
         </div>
 
         <div class="flex space-x-4">

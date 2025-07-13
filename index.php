@@ -1,5 +1,8 @@
 <?php
 session_start();
+require __DIR__ . '/fonction/fonctions.php';
+
+$posts = array_slice(getAllPosts(150), 0, 3);
 
 ?>
 
@@ -72,42 +75,49 @@ session_start();
                     tincidunt vitae, varius sit amet, felis.
                 </p>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Grande carte à gauche -->
-                    <article class="bg-white rounded-lg shadow p-6 md:col-span-2 md:row-span-2">
-                        <div class="h-48 bg-gray-300 rounded mb-4"></div>
-                        <h3 class="text-xl font-semibold mb-2">Ceci est un titre plus ou moins grand</h3>
-                        <p class="text-sm text-gray-500 mb-4">Écrit par Taekwondo St Priest, le 15 Juin 2025</p>
-                        <p class="text-gray-700 mb-4">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam non suscipit elit.
-                            Mauris venenatis, metus vel mattis semper, lorem diam molestie.
-                        </p>
-                        <p class="text-sm text-blue-600">#Tag1 #Tag2 #Tag3</p>
-                    </article>
+                <div class="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2">
+                    <?php foreach ($posts as $post): ?>
+                        <article
+                            class="bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col hover:shadow-xl transition-shadow">
+                            <!-- Placeholder image -->
+                            <div class="h-40 bg-gray-100 flex items-center justify-center text-gray-400">
+                                <i class="fas fa-newspaper fa-2x"></i>
+                            </div>
 
-                    <!-- Petite carte 1 -->
-                    <article class="bg-white rounded-lg shadow p-6">
-                        <h3 class="text-lg font-semibold mb-2">Ceci est un titre plus ou moins grand</h3>
-                        <p class="text-sm text-gray-500 mb-4">Écrit par Taekwondo St Priest, le 15 Juin 2025</p>
-                        <p class="text-gray-700 mb-4">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam non suscipit elit.
-                        </p>
-                        <p class="text-sm text-blue-600">#Tag1 #Tag2 #Tag3</p>
-                    </article>
+                            <div class="p-6 flex flex-col flex-grow">
+                                <h2 class="text-2xl font-semibold mb-2">
+                                    <?= htmlspecialchars($post['titre'], ENT_QUOTES) ?>
+                                </h2>
+                                <p class="text-sm text-gray-500 mb-4">
+                                    Ecrit par <strong><?= htmlspecialchars($post['auteur_nom'], ENT_QUOTES) ?></strong>, le
+                                    <i><?= htmlspecialchars($post['created_at'], ENT_QUOTES) ?></i>
+                                </p>
+                                <p class="text-gray-700 flex-grow mb-4">
+                                    <?= htmlspecialchars($post['excerpt'], ENT_QUOTES) ?>…
+                                </p>
 
-                    <!-- Petite carte 2 -->
-                    <article class="bg-white rounded-lg shadow p-6">
-                        <h3 class="text-lg font-semibold mb-2">Ceci est un titre plus ou moins grand</h3>
-                        <p class="text-sm text-gray-500 mb-4">Écrit par Taekwondo St Priest, le 15 Juin 2025</p>
-                        <p class="text-gray-700 mb-4">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam non suscipit elit.
-                        </p>
-                        <p class="text-sm text-blue-600">#Tag1 #Tag2 #Tag3</p>
-                    </article>
+                                <?php if (!empty($post['tags'])): ?>
+                                    <div class="flex flex-wrap justify-end gap-4 mb-4">
+                                        <?php foreach (explode(',', $post['tags']) as $tag): ?>
+                                            <span
+                                                class="inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">
+                                                <?= htmlspecialchars(trim($tag), ENT_QUOTES) ?>
+                                            </span>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+
+                                <a href="news_detail.php?id=<?= $post['id'] ?>"
+                                    class="mt-auto inline-block self-start bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition">
+                                    Lire la suite
+                                </a>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
                 </div>
 
                 <div class="mt-8 text-center">
-                    <a href="about.php" class="inline-block text-gray-700 hover:text-blue-600 transition">
+                    <a href="news.php" class="inline-block text-gray-700 hover:text-blue-600 transition">
                         Voir toutes les actualités
                     </a>
                 </div>
