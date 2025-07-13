@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div>
                 <label for="motdepasse" class="block text-sm font-medium mb-1">Mot de passe</label>
-                <input type="password" name="motdepasse" id="motdepasse"
+                <input type="password" name="motdepasse" id="motdepasse" required
                     class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-accent">
             </div>
 

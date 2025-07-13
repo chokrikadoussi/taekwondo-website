@@ -20,7 +20,7 @@ session_start();
             <img src="img/hero-left.jpg" alt="Entraînement Taekwondo" class="w-full md:w-1/2 h-auto object-cover">
             <div class="w-full md:w-1/2 p-6 md:p-12">
                 <h1 class="text-3xl md:text-4xl font-bold mb-4">Taekwondo Club Saint-Priest</h1>
-                <h2 class="text-xl md:text-2xl text-gray-600 mb-6">Sous-titre à trouver</h2>
+                <h2 class="text-xl md:text-2xl text-gray-600 mb-6">Un art martial, Une passion, Une communauté </h2>
                 <p class="text-gray-700 mb-6">
                     Fusce suscipit cursus sem. Vivamus risus mi, egestas ac, imperdiet varius, faucibus quis, leo.
                     Aenean tincidunt. Donec suscipit. Cras id justo quis nibh scelerisque dignissim. Aliquam sagittis

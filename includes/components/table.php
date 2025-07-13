@@ -53,30 +53,23 @@
                     <?php if (!empty($actions)): ?>
                         <td class="px-6 py-4 whitespace-nowrap space-x-2">
                             <?php foreach ($actions as $act):
-                                $url = $act['url']($row);
                                 $icon = $act['icon'];
-                                if (($act['method'] ?? 'get') === 'post'): ?>
-                                    <form action="<?= htmlspecialchars($url) ?>" method="post" class="inline-block" onsubmit="<?= $act['confirm']
-                                          ? "return confirm('{$act['confirm']}');"
-                                          : '' ?>">
-                                        <?php if (!empty($act['params'])) {
-                                            foreach ($act['params']($row) as $name => $value) {
-                                                echo '<input type="hidden" name="' . htmlspecialchars($name) . '" value="' . htmlspecialchars($value) . '">';
-                                            }
-                                        } ?>
-                                        <button type="submit"
-                                            class="inline-flex items-center justify-center p-1.5 rounded-full text-sm text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
-                                            aria-label="<?= htmlspecialchars($act['label']) ?>">
-                                            <i class="fas fa-<?= htmlspecialchars($icon) ?> w-5 h-5"></i>
-                                        </button>
-                                    </form>
-                                <?php else: ?>
-                                    <a href="<?= htmlspecialchars($url) ?>"
+                                ?>
+                                <form method="post" class="inline-block"
+                                    <?= isset($act['confirm'])
+                                        ? 'onsubmit="return confirm(\'' . htmlspecialchars($act['confirm'], ENT_QUOTES) . '\');"'
+                                        : '' ?>">
+                                    <?php if (!empty($act['params'])) {
+                                        foreach ($act['params']($row) as $name => $value) {
+                                            echo '<input type="hidden" name="' . htmlspecialchars($name) . '" value="' . htmlspecialchars($value) . '">';
+                                        }
+                                    } ?>
+                                    <button type="submit"
                                         class="inline-flex items-center justify-center p-1.5 rounded-full text-sm text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500"
                                         aria-label="<?= htmlspecialchars($act['label']) ?>">
                                         <i class="fas fa-<?= htmlspecialchars($icon) ?> w-5 h-5"></i>
-                                    </a>
-                                <?php endif; ?>
+                                    </button>
+                                </form>
                             <?php endforeach; ?>
                         </td>
                     <?php endif; ?>

@@ -228,8 +228,8 @@ function enregistrerUtilisateur($donnees)
 {
     $co = connexionBaseDeDonnees();
     $sql = "
-      INSERT INTO users (email, mdp_securise, prenom, nom, role)
-      VALUES (:email, :mdp_securise, :prenom, :nom, :role)
+      INSERT INTO users (email, mdp_securise, prenom, nom)
+      VALUES (:email, :mdp_securise, :prenom, :nom)
     ";
 
     $req = $co->prepare($sql);
@@ -240,7 +240,6 @@ function enregistrerUtilisateur($donnees)
             "mdp_securise" => $donnees["mdp_securise"],
             "prenom" => $donnees["prenom"],
             "nom" => $donnees["nom"],
-            "role" => $donnees["role"],
         ));
     } catch (PDOException $e) {
         error_log(
@@ -304,9 +303,9 @@ function modifierUtilisateur($id, $fields)
     $params = array();
     foreach ($fields as $col => $val) {
         $sets[] = "$col = :$col";
-        $params[":$col"] = $val;
+        $params[$col] = $val;
     }
-    $params[':id'] = $id;
+    $params['id'] = $id;
 
     $sql = "
     UPDATE users 
@@ -353,4 +352,463 @@ function deleteUser(int $id): bool
         );
         return false;
     }
+}
+
+/**
+ * Renvoie l’utilisateur (assoc) ou [] si non trouvé.
+ */
+function getUserById(int $id): array
+{
+    $pdo = connexionBaseDeDonnees();
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->execute([$id]);
+    return (array) $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Valide les données utilisateur pour create ou update.
+ * @param array      $data      Nettoyé par nettoyerDonnees()
+ * @param int|null   $excludeId Si non-null, exclut cet id pour l’unicité email
+ * @return string[]  Liste d’erreurs (vide si OK)
+ */
+function validateUserData(array $data, ?int $excludeId = null): array
+{
+    $errors = [];
+
+    if (empty($data['email']) || !estValideMail($data['email'])) {
+        $errors[] = 'Adresse e-mail invalide.';
+    } else {
+        // unicité
+        $pdo = connexionBaseDeDonnees();
+        $sql = "SELECT COUNT(*) FROM users WHERE email = :email";
+        if ($excludeId) {
+            $sql .= " AND id <> :id";
+        }
+        $stmt = $pdo->prepare($sql);
+        $params = ['email' => $data['email']];
+        if ($excludeId) {
+            $params['id'] = $excludeId;
+        }
+        $stmt->execute($params);
+        if ($stmt->fetchColumn() > 0) {
+            $errors[] = 'Cet e-mail est déjà utilisé.';
+        }
+    }
+
+    if (!empty($data['motdepasse']) || $excludeId === null) {
+        // si création (excludeId null) ou motdepasse renseigné en update
+        if (empty($data['motdepasse']) || !estValideMotdepasse($data['motdepasse'])) {
+            $errors[] = 'Le mot de passe ne respecte pas les contraintes.';
+        }
+        if ($data['motdepasse'] !== ($data['confirm'] ?? '')) {
+            $errors[] = 'La confirmation du mot de passe ne correspond pas.';
+        }
+    }
+
+    if (empty($data['prenom'])) {
+        $errors[] = 'Le prénom est requis.';
+    }
+    if (empty($data['nom'])) {
+        $errors[] = 'Le nom est requis.';
+    }
+
+    return $errors;
+}
+
+/**
+ * Redirige vers la page du profile Admin correspondante.
+ * @param string $page Page de destination
+ */
+function redirectToProfile(string $page): void
+{
+    header("Location: profile.php?page=" . $page);
+    exit;
+}
+
+/**
+ * Définit un flash message (success|error).
+ */
+function setFlash(string $type, string $msg): void
+{
+    $_SESSION['flash'][$type][] = $msg;
+}
+
+/**
+ * Affiche puis vide les flash messages.
+ */
+function displayFlash(): void
+{
+    if (empty($_SESSION['flash'])) {
+        return;
+    }
+    foreach ($_SESSION['flash'] as $type => $messages) {
+        $bg = $type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+        echo "<div class=\"mb-4 p-4 $bg rounded\">";
+        echo '<ul class="list-disc pl-5">';
+        foreach ($messages as $m) {
+            echo '<li>' . htmlspecialchars($m, ENT_QUOTES) . '</li>';
+        }
+        echo '</ul></div>';
+    }
+    unset($_SESSION['flash']);
+}
+
+/**
+ * Récupère un entraîneur par son ID.
+ * @param int $id
+ * @return array
+ */
+function getTrainerById(int $id): array
+{
+    $pdo = connexionBaseDeDonnees();
+    $stmt = $pdo->prepare("SELECT id, prenom, nom, bio, photo, created_at, updated_at FROM team WHERE id = ?");
+    $stmt->execute([$id]);
+    return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+}
+
+/**
+ * Valide les données d’un entraîneur en création ou édition.
+ * @param array $data
+ * @param ?int $excludeId
+ * @return array
+ */
+function validateTrainerData(array $data, ?int $excludeId = null): array
+{
+    $errors = [];
+    if (empty($data['prenom'])) {
+        $errors[] = 'Le prénom est requis.';
+    }
+    if (empty($data['nom'])) {
+        $errors[] = 'Le nom est requis.';
+    }
+    if (empty($data['bio'])) {
+        $errors[] = 'La biographie est requise.';
+    }
+    // (Optionnel : valider la taille de bio, le format de photo, etc.)
+    return $errors;
+}
+
+/**
+ * Crée un nouvel entraîneur.
+ * @param array $data
+ * @return bool 
+ */
+function enregistrerEntraineur(array $data): bool
+{
+    $pdo = connexionBaseDeDonnees();
+    $stmt = $pdo->prepare(
+        "INSERT INTO team (prenom, nom, bio, photo, created_at, updated_at)
+         VALUES (:prenom, :nom, :bio, :photo, NOW(), NOW())"
+    );
+    return $stmt->execute([
+        'prenom' => $data['prenom'],
+        'nom' => $data['nom'],
+        'bio' => $data['bio'],
+        'photo' => $data['photo'] ?? null,
+    ]);
+}
+
+/**
+ * Met à jour un entraîneur existant.
+ */
+function modifierEntraineur(int $id, array $fields): bool
+{
+    $pdo = connexionBaseDeDonnees();
+    $sets = [];
+    $params = [];
+    foreach ($fields as $col => $val) {
+        $sets[] = "$col = :$col";
+        $params[$col] = $val;
+    }
+    $params['id'] = $id;
+    $sql = "UPDATE team SET " . implode(',', $sets) . ", updated_at = NOW() WHERE id = :id";
+    $stmt = $pdo->prepare($sql);
+    return $stmt->execute($params);
+}
+
+/**
+ * Supprime un entraîneur.
+ */
+function deleteEntraineur(int $id): bool
+{
+    $pdo = connexionBaseDeDonnees();
+    $stmt = $pdo->prepare("DELETE FROM team WHERE id = ?");
+    return $stmt->execute([$id]);
+}
+
+/**
+ * Récupère un cours par son ID.
+ */
+function getClasseById(int $id): array
+{
+    $pdo = connexionBaseDeDonnees();
+    $stmt = $pdo->prepare("
+        SELECT id, nom, niveau, prix, description, team_id, date_creation, updated_at
+        FROM classes
+        WHERE id = ?
+    ");
+    $stmt->execute([$id]);
+    return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+}
+
+/**
+ * Valide les données d’un cours.
+ */
+function validateClasseData(array $data, ?int $excludeId = null): array
+{
+    $errors = [];
+    if (empty($data['nom'])) {
+        $errors[] = 'Le nom du cours est requis.';
+    }
+    if (empty($data['niveau'])) {
+        $errors[] = 'Le niveau est requis.';
+    }
+    if (!isset($data['prix']) || !is_numeric($data['prix']) || $data['prix'] < 0) {
+        $errors[] = 'Le prix doit être un nombre positif.';
+    }
+    if (empty($data['description'])) {
+        $errors[] = 'La description est requise.';
+    }
+    // **Nouvelle validation team_id**
+    if (empty($data['team_id']) || !ctype_digit((string) $data['team_id'])) {
+        $errors[] = "L'entraîneur est requis.";
+    } else {
+        // vérifier que l’entraîneur existe bien
+        $pdo = connexionBaseDeDonnees();
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM team WHERE id = ?");
+        $stmt->execute([(int) $data['team_id']]);
+        if ($stmt->fetchColumn() == 0) {
+            $errors[] = "Entraîneur invalide.";
+        }
+    }
+    return $errors;
+}
+
+/**
+ * Crée un nouveau cours.
+ */
+function enregistrerClasse(array $data): bool
+{
+    $pdo = connexionBaseDeDonnees();
+    $stmt = $pdo->prepare("
+        INSERT INTO classes (nom, niveau, prix, description, date_creation, updated_at)
+        VALUES (:nom, :niveau, :prix, :description, NOW(), NOW())
+    ");
+    return $stmt->execute([
+        'nom' => $data['nom'],
+        'niveau' => $data['niveau'],
+        'prix' => $data['prix'],
+        'description' => $data['description'],
+    ]);
+}
+
+/**
+ * Met à jour un cours existant.
+ */
+function modifierClasse(int $id, array $fields): bool
+{
+    $pdo = connexionBaseDeDonnees();
+    $sets = [];
+    $params = [];
+    foreach ($fields as $col => $val) {
+        $sets[] = "$col = :$col";
+        $params[$col] = $val;
+    }
+    $params['id'] = $id;
+    $sql = "
+        UPDATE classes
+        SET " . implode(',', $sets) . ", updated_at = NOW()
+        WHERE id = :id
+    ";
+    $stmt = $pdo->prepare($sql);
+    return $stmt->execute($params);
+}
+
+/**
+ * Supprime un cours.
+ */
+function deleteClasse(int $id): bool
+{
+    $pdo = connexionBaseDeDonnees();
+    $stmt = $pdo->prepare("DELETE FROM classes WHERE id = ?");
+    return $stmt->execute([$id]);
+}
+
+/**
+ * Récupère tous les messages, triés par non lus d’abord.
+ */
+function getAllMessages(): array
+{
+    $pdo = connexionBaseDeDonnees();
+    return $pdo
+        ->query("SELECT id, nom, email, sujet, is_read, DATE_FORMAT(created_at,'%d-%m-%Y %H:%i') AS date_sent
+               FROM messages
+               ORDER BY is_read ASC, created_at DESC")
+        ->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Récupère un message par son ID.
+ */
+function getMessageById(int $id): array
+{
+    $pdo = connexionBaseDeDonnees();
+    $stmt = $pdo->prepare("
+        SELECT
+          id,
+          nom,
+          email,
+          sujet,
+          contenu,
+          is_read,
+          DATE_FORMAT(created_at, '%d-%m-%Y %H:%i') AS date_sent
+        FROM messages
+        WHERE id = ?
+    ");
+    $stmt->execute([$id]);
+    return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+}
+
+/**
+ * Marque un message comme lu.
+ */
+function markMessageRead(int $id): bool
+{
+    $pdo = connexionBaseDeDonnees();
+    $stmt = $pdo->prepare("UPDATE messages SET is_read = 1 WHERE id = ?");
+    return $stmt->execute([$id]);
+}
+
+/**
+ * Supprime un message.
+ */
+function deleteMessage(int $id): bool
+{
+    $pdo = connexionBaseDeDonnees();
+    $stmt = $pdo->prepare("DELETE FROM messages WHERE id = ?");
+    return $stmt->execute([$id]);
+}
+
+/**
+ * Valide title/content pour un post.
+ */
+function validatePostData(array $data, ?int $excludeId = null): array
+{
+    $errors = [];
+    if (empty($data['titre'])) {
+        $errors[] = 'Le titre est requis.';
+    }
+    if (empty($data['contenu']) || mb_strlen($data['contenu']) < 20) {
+        $errors[] = 'Le contenu est trop court (min. 20 chars).';
+    }
+    if (empty($data['auteur']) || !is_numeric($data['auteur'])) {
+        $errors[] = 'Auteur invalide.';
+    }
+    return $errors;
+}
+
+/** 
+ * Retourne la liste des auteurs possibles (ex : tous les admins/parents).
+ */
+function getAllAuthors(): array
+{
+    $pdo = connexionBaseDeDonnees();
+    return $pdo
+        ->query("SELECT id, CONCAT(prenom,' ',nom) AS nom_complet FROM users WHERE role='admin'")
+        ->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Insère un nouvel article.
+ */
+function enregistrerPost(array $d): bool
+{
+    $pdo = connexionBaseDeDonnees();
+    $stmt = $pdo->prepare("
+    INSERT INTO posts (titre, contenu, auteur)
+    VALUES (:titre,:contenu,:auteur)
+  ");
+    return $stmt->execute([
+        'titre' => $d['titre'],
+        'contenu' => $d['contenu'],
+        'auteur' => $d['auteur'],
+    ]);
+}
+
+/**
+ * Met à jour un article existant.
+ */
+function modifierPost(int $id, array $d): bool
+{
+    $pdo = connexionBaseDeDonnees();
+    $stmt = $pdo->prepare("
+    UPDATE posts
+    SET titre = :titre,
+        contenu = :contenu,
+        auteur = :auteur,
+        updated_at = NOW()
+    WHERE id = :id
+  ");
+    return $stmt->execute([
+        'titre' => $d['titre'],
+        'contenu' => $d['contenu'],
+        'auteur' => $d['auteur'],
+        'id' => $id,
+    ]);
+}
+
+/**
+ * Supprime un article.
+ */
+function deletePost(int $id): bool
+{
+    $pdo = connexionBaseDeDonnees();
+    $stmt = $pdo->prepare("DELETE FROM posts WHERE id = ?");
+    return $stmt->execute([$id]);
+}
+
+/**
+ * Récupère un article.
+ */
+function getPostById(int $id): array
+{
+    $pdo = connexionBaseDeDonnees();
+    $stmt = $pdo->prepare("
+    SELECT
+      p.id,
+      p.titre,
+      p.contenu,
+      p.auteur,
+      CONCAT(u.prenom,' ',u.nom) AS auteur_nom,
+      DATE_FORMAT(p.created_at,'%d-%m-%Y')   AS created_at,
+      DATE_FORMAT(p.updated_at,'%d-%m-%Y')   AS updated_at,
+      LEFT(p.contenu,150)                    AS excerpt
+    FROM posts AS p
+    JOIN users AS u ON u.id = p.auteur
+    WHERE p.id = ?
+  ");
+    $stmt->execute([$id]);
+    return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+}
+
+/**
+ * Récupère tous les articles.
+ */
+function getAllPosts(): array
+{
+    $pdo = connexionBaseDeDonnees();
+    return $pdo
+        ->query("
+      SELECT
+        p.id,
+        p.titre,
+        LEFT(p.contenu,150)                    AS excerpt,
+        CONCAT(u.prenom,' ',u.nom) AS auteur,
+        DATE_FORMAT(p.created_at,'%d-%m-%Y')   AS created_at,
+        DATE_FORMAT(p.updated_at,'%d-%m-%Y')   AS updated_at
+      FROM posts p
+      JOIN users u ON u.id = p.auteur
+      ORDER BY p.created_at DESC
+    ")
+        ->fetchAll(PDO::FETCH_ASSOC);
 }

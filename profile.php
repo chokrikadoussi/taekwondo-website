@@ -13,13 +13,8 @@ $pageActuelle = isset($_GET['page']) ? htmlspecialchars($_GET['page']) : 'overvi
 $pagesAdmin = array('users', 'posts', 'classes', 'team', 'messages', 'settings', 'create_user', 'edit_user', 'delete_user', );
 
 // Si l’utilisateur est admin, on récupère le nombre de messages non lus
-$unreadCount = 0;
-if ($role === 'admin') {
-    $pdo = connexionBaseDeDonnees();
-    $unreadCount = (int) $pdo
-        ->query("SELECT COUNT(*) FROM messages WHERE is_read = 0")
-        ->fetchColumn();
-}
+$unreadCount = count(array_filter(getAllMessages(), fn($m)=> $m['is_read']==0));
+
 ?>
 
 <!DOCTYPE html>
