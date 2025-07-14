@@ -62,17 +62,17 @@ $showForm = $isCreate || $isEdit || (!empty($errors) && ($isStore || $isUpdate))
 
 // 9) Si pas de form, on charge le tableau
 if (!$showForm) {
-    $rows = connexionBaseDeDonnees()
-        ->query("
-            SELECT id,
-                   CONCAT(prenom,' ',nom) AS nom_complet,
-                   LEFT(bio,100) AS extrait_bio,
-                   DATE_FORMAT(created_at,'%d-%m-%Y') AS date_creation,
-                   DATE_FORMAT(updated_at,'%d-%m-%Y') AS date_modification
-            FROM team
-            ORDER BY id
-        ")
-        ->fetchAll(PDO::FETCH_ASSOC);
+    $all = getAllTrainers();
+
+    $baseUrl = "profile.php?page=" . $pageActuelle;
+    // chargement du tableau
+    $pag = paginateArray($all, 'p', 5);
+    // on remplace les rows par le slice
+    $rows = $pag['slice'];
+    // et on récupère les infos de pagination
+    extract($pag); // pageNum, perPage, total, totalPages, offset, slice
+    $start = $pag['offset'] + 1;
+    $end = min($pag['offset'] + $perPage, $total);
 }
 
 // 10) Config du composant table.php
@@ -87,12 +87,12 @@ $actions = [
 
 <?php displayFlash() ?>
 
-<div class="flex justify-between mb-4">
-    <h2 class="text-xl font-semibold">Gestion des entraîneurs</h2>
+<div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-bold text-gray-900">Gestion des entraîneurs</h2>
     <?php if (!$showForm): ?>
         <form method="post">
             <input type="hidden" name="action" value="create">
-            <button class="bg-green-600 px-4 py-2 rounded text-white hover:bg-green-700">
+            <button class="bg-blue-600 px-4 py-2 rounded text-white hover:bg-blue-700">
                 <i class="fas fa-plus mr-1"></i>Ajouter
             </button>
         </form>
@@ -103,6 +103,7 @@ $actions = [
 
     <!-- Tableau générique -->
     <?php include __DIR__ . '/../components/table.php'; ?>
+    <?php include __DIR__ . '/../components/pagination.php'; ?>
 
 <?php else: ?>
 
@@ -118,7 +119,7 @@ $actions = [
     <?php endif; ?>
 
     <!-- Formulaire create/edit -->
-    <form method="post" class="space-y-4 bg-white p-6 rounded shadow">
+    <form method="post" class="space-y-4 bg-white p-6 rounded">
         <input type="hidden" name="action" value="<?= $isEdit ? 'update' : 'store' ?>">
         <?php if ($isEdit): ?>
             <input type="hidden" name="id" value="<?= $id ?>">
@@ -146,7 +147,7 @@ $actions = [
 
         <div>
             <label for="photo" class="block text-sm font-medium">URL Photo (optionnel)</label>
-            <input type="url" name="photo" id="photo" value="<?= htmlspecialchars($record['photo'] ?? '', ENT_QUOTES) ?>"
+            <input type="text" name="photo" id="photo" value="<?= htmlspecialchars($record['photo'] ?? '', ENT_QUOTES) ?>"
                 class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500">
         </div>
 

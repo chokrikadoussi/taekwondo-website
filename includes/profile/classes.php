@@ -66,20 +66,17 @@ if ($isUpdate && empty($errors)) {
 $showForm = $isCreate || $isEdit || (!empty($errors) && ($isStore || $isUpdate));
 
 if (!$showForm) {
-    $rows = $pdo->query("
-        SELECT
-          c.id,
-          c.nom,
-          c.niveau,
-          CONCAT(c.prix,' €') AS prix_aff,
-          LEFT(c.description,100) AS extrait_desc,
-          CONCAT(t.prenom,' ',t.nom) AS entraineur,
-          DATE_FORMAT(c.date_creation,'%d-%m-%Y') AS date_creation,
-          DATE_FORMAT(c.updated_at,'%d-%m-%Y') AS date_modification
-        FROM classes c
-        LEFT JOIN team t ON t.id = c.team_id
-        ORDER BY c.nom
-    ")->fetchAll(PDO::FETCH_ASSOC);
+    $all = getAllClasses();
+
+    $baseUrl = "profile.php?page=" . $pageActuelle;
+    // chargement du tableau
+    $pag = paginateArray($all, 'p', 5);
+    // on remplace les rows par le slice
+    $rows = $pag['slice'];
+    // et on récupère les infos de pagination
+    extract($pag); // pageNum, perPage, total, totalPages, offset, slice
+    $start = $pag['offset'] + 1;
+    $end = min($pag['offset'] + $perPage, $total);
 }
 
 // 9) Configuration table.php
@@ -94,13 +91,13 @@ $actions = [
 
 <?php displayFlash() ?>
 
-<div class="flex justify-between mb-4">
-    <h2 class="text-xl font-semibold">Gestion des cours</h2>
+<div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-bold text-gray-900">Gestion des cours</h2>
     <?php if (!$showForm): ?>
         <form method="post">
             <input type="hidden" name="action" value="create">
-            <button class="bg-green-600 px-4 py-2 rounded text-white hover:bg-green-700">
-                <i class="fas fa-plus mr-1"></i>Ajouter un cours
+            <button class="bg-blue-600 px-4 py-2 rounded text-white hover:bg-blue-700">
+                <i class="fas fa-plus mr-1"></i>Ajouter
             </button>
         </form>
     <?php endif; ?>
@@ -109,6 +106,7 @@ $actions = [
 <?php if (!$showForm): ?>
 
     <?php include __DIR__ . '/../components/table.php'; ?>
+    <?php include __DIR__ . '/../components/pagination.php'; ?>
 
 <?php else: ?>
 
@@ -122,11 +120,11 @@ $actions = [
         </div>
     <?php endif; ?>
 
-    <form method="post" class="space-y-4 bg-white p-6 rounded shadow">
+    <form method="post" class="space-y-4 bg-white p-6 rounded">
         <input type="hidden" name="action" value="<?= $isEdit ? 'update' : 'store' ?>">
         <?php if ($isEdit): ?><input type="hidden" name="id" value="<?= $id ?>"><?php endif ?>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid lg:grid-cols-2 gap-4">
             <div>
                 <label for="nom" class="block text-sm font-medium">Nom du cours</label>
                 <input type="text" name="nom" id="nom" required value="<?= htmlspecialchars($record['nom'], ENT_QUOTES) ?>"
@@ -144,7 +142,7 @@ $actions = [
             </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid lg:grid-cols-2 gap-4">
             <div>
                 <label for="team_id" class="block text-sm font-medium">Entraîneur</label>
                 <select name="team_id" id="team_id" required

@@ -5,15 +5,23 @@ $pageActuelle = 'news';
 
 require __DIR__ . '/fonction/fonctions.php';
 
-// 1) Lecture des paramètres de filtre/tri
+// 1) Lecture des paramètres de filtre/tri/pagination
 $filterTag = $_GET['tag'] ?? null;
 $sort = $_GET['sort'] ?? 'desc';
+$perPage = 9;                                              // nombre d’articles par page
+$page = max(1, (int) ($_GET['page'] ?? 1)); // page courante, >=1
 
 // 2) Récupération de la liste des tags pour le filtre
 $allTags = getAllTags();
 
 // 3) Récupération des posts filtrés / triés
-$posts = getAllPosts(150, $filterTag, $sort);
+$allPosts = getAllPosts(150, $filterTag, $sort);
+$total = count($allPosts);
+$pages = (int) ceil($total / $perPage);
+
+// 4) Extraire la « fenêtre » pour la page courante
+$offset = ($page - 1) * $perPage;
+$posts = array_slice($allPosts, $offset, $perPage);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -28,34 +36,39 @@ $posts = getAllPosts(150, $filterTag, $sort);
     <main class="flex-grow container mx-auto px-4 py-12 space-y-6">
         <h1 class="text-3xl font-bold text-center">Nos actualités</h1>
 
-        <!-- Filtre et tri -->
+        <!-- Filtre & Tri -->
         <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
             <!-- Filtre par tag -->
             <div class="flex flex-wrap gap-2">
                 <span class="font-medium">Filtrer par tag :</span>
-                <a href="news.php"
+                <a href="news.php?sort=<?= $sort ?>"
                     class="px-2 py-1 rounded <?= $filterTag === null ? 'bg-blue-600 text-white' : 'bg-gray-200' ?>">
                     Tous
                 </a>
-                <?php foreach ($allTags as $tag): ?>
-                    <a href="news.php?tag=<?= urlencode($tag['name']) ?>&sort=<?= $sort ?>"
-                        class="px-2 py-1 rounded <?= $filterTag === $tag['name'] ? 'bg-blue-600 text-white' : 'bg-gray-200' ?>">
-                        <?= htmlspecialchars($tag['name'], ENT_QUOTES) ?>
+                <?php foreach ($allTags as $t): ?>
+                    <a href="news.php?tag=<?= urlencode($t['name']) ?>&sort=<?= $sort ?>"
+                        class="px-2 py-1 rounded <?= $filterTag === $t['name'] ? 'bg-blue-600 text-white' : 'bg-gray-200' ?>">
+                        <?= htmlspecialchars($t['name'], ENT_QUOTES) ?>
                     </a>
                 <?php endforeach; ?>
             </div>
 
-            <!-- Tri par date -->
+            <!-- Tri par date (dropdown) -->
             <div class="flex items-center gap-2">
-                <span class="font-medium">Trier :</span>
-                <a href="news.php?<?= $filterTag ? "tag=" . urlencode($filterTag) . "&" : '' ?>sort=desc"
-                    class="px-2 py-1 rounded <?= $sort === 'desc' ? 'bg-blue-600 text-white' : 'bg-gray-200' ?>">
-                    Plus récentes
-                </a>
-                <a href="news.php?<?= $filterTag ? "tag=" . urlencode($filterTag) . "&" : '' ?>sort=asc"
-                    class="px-2 py-1 rounded <?= $sort === 'asc' ? 'bg-blue-600 text-white' : 'bg-gray-200' ?>">
-                    Plus anciennes
-                </a>
+                <label for="sort-select" class="font-medium">Trier :</label>
+                <select id="sort-select" onchange="location.href=this.value" class="border rounded px-2 py-1">
+                    <?php
+                    // Générer l’URL courante en préservant le filtre de tag
+                    $baseUrl = 'news.php?'
+                        . ($filterTag ? 'tag=' . urlencode($filterTag) . '&' : '');
+                    ?>
+                    <option value="<?= $baseUrl . 'sort=desc' ?>" <?= $sort === 'desc' ? 'selected' : '' ?>>
+                        + Récentes
+                    </option>
+                    <option value="<?= $baseUrl . 'sort=asc' ?>" <?= $sort === 'asc' ? 'selected' : '' ?>>
+                        + Anciennes
+                    </option>
+                </select>
             </div>
         </div>
 
@@ -103,6 +116,31 @@ $posts = getAllPosts(150, $filterTag, $sort);
 
             <?php endforeach; ?>
         </div>
+        <?php if ($pages > 1): ?>
+            <nav class="flex items-center justify-center space-x-2 mt-12">
+                <!-- Previous -->
+                <a href="?page=<?= max(1, $page - 1) ?>"
+                    class="<?= $page === 1 ? 'opacity-50 cursor-not-allowed' : '' ?> px-3 py-1 rounded border"
+                    aria-disabled="<?= $page === 1 ? 'true' : 'false' ?>">
+                    Précédent
+                </a>
+
+                <!-- Numéros de pages -->
+                <?php for ($p = 1; $p <= $pages; $p++): ?>
+                    <a href="?page=<?= $p ?>"
+                        class="px-3 py-1 rounded border <?= $p === $page ? 'bg-blue-600 text-white' : 'hover:bg-gray-100' ?>">
+                        <?= $p ?>
+                    </a>
+                <?php endfor; ?>
+
+                <!-- Next -->
+                <a href="?page=<?= min($pages, $page + 1) ?>"
+                    class="<?= $page === $pages ? 'opacity-50 cursor-not-allowed' : '' ?> px-3 py-1 rounded border"
+                    aria-disabled="<?= $page === $pages ? 'true' : 'false' ?>">
+                    Suivant
+                </a>
+            </nav>
+        <?php endif; ?>
     </main>
 
     <?php include __DIR__ . '/includes/footer.php'; ?>

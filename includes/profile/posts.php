@@ -70,7 +70,17 @@ if ($isUpdate && empty($errors)) {
 $showForm = $isCreate || $isEdit || (!empty($errors) && ($isStore || $isUpdate));
 
 if (!$showForm) {
-    $rows = getAllPosts();
+    $all = getAllPosts();
+
+    $baseUrl = "profile.php?page=" . $pageActuelle;
+    // chargement du tableau
+    $pag = paginateArray($all, 'p', 5);
+    // on remplace les rows par le slice
+    $rows = $pag['slice'];
+    // et on récupère les infos de pagination
+    extract($pag); // pageNum, perPage, total, totalPages, offset, slice
+    $start = $pag['offset'] + 1;
+    $end = min($pag['offset'] + $perPage, $total);
 }
 
 // 9) Configuration du composant table.php
@@ -96,13 +106,13 @@ $actions = [
 
 <?php displayFlash(); ?>
 
-<div class="flex justify-between mb-4">
-    <h2 class="text-xl font-semibold">Gestion des actualités</h2>
+<div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-bold text-gray-900">Gestion des actualités</h2>
     <?php if (!$showForm): ?>
         <form method="post">
             <input type="hidden" name="action" value="create">
-            <button class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition">
-                <i class="fas fa-plus mr-1"></i>Créer un article
+            <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition">
+                <i class="fas fa-plus mr-1"></i>Ajouter
             </button>
         </form>
     <?php endif; ?>
@@ -112,6 +122,7 @@ $actions = [
 
     <!-- Tableau générique -->
     <?php include __DIR__ . '/../components/table.php'; ?>
+    <?php include __DIR__ . '/../components/pagination.php'; ?>
 
 <?php else: ?>
 
@@ -127,7 +138,7 @@ $actions = [
     <?php endif; ?>
 
     <!-- Formulaire create/edit -->
-    <form method="post" class="space-y-4 bg-white p-6 rounded shadow">
+    <form method="post" class="space-y-4 bg-white p-6 rounded">
         <input type="hidden" name="action" value="<?= $isEdit ? 'update' : 'store' ?>">
         <?php if ($isEdit): ?>
             <input type="hidden" name="id" value="<?= $id ?>">

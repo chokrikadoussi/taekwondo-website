@@ -1,13 +1,18 @@
 <?php
 /*
-TODO:
-PRIORITE : revoir singleton, c'est quoi ? c'est utile ? comment s'en passé ?
+==================================================================================================
+FICHIER REGROUPANT L'ENSEMBLE DES FONCTIONS UTILISEES PAR LE SITE
+==================================================================================================
+Auteur : Chokri Kadoussi
+Date : 14/07/2025
+Version : 2.0
 
-- revoir le workflow de création d'un utilisateur
+Présentation du fichier :
 
-- revoir les fonctions auth et user_login
+    hehe
+    hehe
+
 */
-
 
 // Récupération des paramètres et constantes
 require __DIR__ . "/../parametrage/param.php";
@@ -20,21 +25,20 @@ require __DIR__ . "/../parametrage/param.php";
  */
 function connexionBaseDeDonnees()
 {
-    static $pdo = null;
+    static $co = null;
 
-    if ($pdo === null) {
+    if ($co === null) {
         // Construction du DSN à partir des constantes
         $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET;
 
         try {
-            $pdo = new PDO($dsn, DB_USER, DB_PASS, array(
+            $co = new PDO($dsn, DB_USER, DB_PASS, array(
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ));
         } catch (PDOException $e) {
             // Affiche un message simplifié et arrête le script
             // En prod, tu peux logger $e->getMessage() dans un fichier de log
-
             error_log(
                 date('Y-m-d H:i:s') . " | connexionBaseDeDonnees() PDO erreur: " . $e->getMessage() . "\n",
                 3,
@@ -43,8 +47,7 @@ function connexionBaseDeDonnees()
             return false;
         }
     }
-
-    return $pdo;
+    return $co;
 }
 
 /**
@@ -152,7 +155,7 @@ function connexionUtilisateur($email)
 
     try {
         $req = $co->prepare(
-            'SELECT id, prenom, nom, role
+            'SELECT id, prenom, nom, DATE_FORMAT(created_at,"%d-%m-%Y") as created_at, role
              FROM users
              WHERE email = :email'
         );
@@ -176,6 +179,7 @@ function connexionUtilisateur($email)
             'prenom' => $user['prenom'],
             'nom' => $user['nom'],
             'role' => $user['role'],
+            'created_at' => $user['created_at'],
         ];
     }
 }
@@ -335,14 +339,14 @@ function modifierUtilisateur($id, $fields)
  */
 function deleteUser(int $id): bool
 {
-    $pdo = connexionBaseDeDonnees();
-    if (!$pdo) {
+    $co = connexionBaseDeDonnees();
+    if (!$co) {
         return false;
     }
 
     try {
-        $stmt = $pdo->prepare('DELETE FROM `users` WHERE `id` = :id');
-        return $stmt->execute([':id' => $id]);
+        $req = $co->prepare('DELETE FROM `users` WHERE `id` = :id');
+        return $req->execute([':id' => $id]);
     } catch (PDOException $e) {
         // En prod, logger l’erreur :
         error_log(
@@ -359,10 +363,10 @@ function deleteUser(int $id): bool
  */
 function getUserById(int $id): array
 {
-    $pdo = connexionBaseDeDonnees();
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->execute([$id]);
-    return (array) $stmt->fetch(PDO::FETCH_ASSOC);
+    $co = connexionBaseDeDonnees();
+    $req = $co->prepare("SELECT * FROM users WHERE id = ?");
+    $req->execute([$id]);
+    return (array) $req->fetch(PDO::FETCH_ASSOC);
 }
 
 /**
@@ -384,13 +388,13 @@ function validateUserData(array $data, ?int $excludeId = null): array
         if ($excludeId) {
             $sql .= " AND id <> :id";
         }
-        $stmt = $pdo->prepare($sql);
+        $req = $pdo->prepare($sql);
         $params = ['email' => $data['email']];
         if ($excludeId) {
             $params['id'] = $excludeId;
         }
-        $stmt->execute($params);
-        if ($stmt->fetchColumn() > 0) {
+        $req->execute($params);
+        if ($req->fetchColumn() > 0) {
             $errors[] = 'Cet e-mail est déjà utilisé.';
         }
     }
@@ -450,10 +454,15 @@ function displayFlash(): void
  */
 function getTrainerById(int $id): array
 {
-    $pdo = connexionBaseDeDonnees();
-    $stmt = $pdo->prepare("SELECT id, prenom, nom, bio, photo, created_at, updated_at FROM team WHERE id = ?");
-    $stmt->execute([$id]);
-    return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    $co = connexionBaseDeDonnees();
+    $sql = "
+    SELECT id, prenom, nom, bio, photo, created_at, updated_at 
+    FROM team 
+    WHERE id = :id
+    ";
+    $req = $co->prepare($sql);
+    $req->execute(["id" => $id]);
+    return $req->fetch(PDO::FETCH_ASSOC) ?: [];
 }
 
 /**
@@ -485,12 +494,13 @@ function validateTrainerData(array $data, ?int $excludeId = null): array
  */
 function enregistrerEntraineur(array $data): bool
 {
-    $pdo = connexionBaseDeDonnees();
-    $stmt = $pdo->prepare(
-        "INSERT INTO team (prenom, nom, bio, photo, created_at, updated_at)
-         VALUES (:prenom, :nom, :bio, :photo, NOW(), NOW())"
-    );
-    return $stmt->execute([
+    $co = connexionBaseDeDonnees();
+    $sql = "
+    INSERT INTO team (prenom, nom, bio, photo, created_at, updated_at)
+    VALUES (:prenom, :nom, :bio, :photo, NOW(), NOW())
+    ";
+    $req = $co->prepare($sql);
+    return $req->execute([
         'prenom' => $data['prenom'],
         'nom' => $data['nom'],
         'bio' => $data['bio'],
@@ -503,7 +513,7 @@ function enregistrerEntraineur(array $data): bool
  */
 function modifierEntraineur(int $id, array $fields): bool
 {
-    $pdo = connexionBaseDeDonnees();
+    $co = connexionBaseDeDonnees();
     $sets = [];
     $params = [];
     foreach ($fields as $col => $val) {
@@ -511,9 +521,12 @@ function modifierEntraineur(int $id, array $fields): bool
         $params[$col] = $val;
     }
     $params['id'] = $id;
-    $sql = "UPDATE team SET " . implode(',', $sets) . ", updated_at = NOW() WHERE id = :id";
-    $stmt = $pdo->prepare($sql);
-    return $stmt->execute($params);
+    $sql = "
+    UPDATE team SET " . implode(',', $sets) . ", updated_at = NOW() 
+    WHERE id = :id
+    ";
+    $req = $co->prepare($sql);
+    return $req->execute($params);
 }
 
 /**
@@ -521,9 +534,10 @@ function modifierEntraineur(int $id, array $fields): bool
  */
 function deleteEntraineur(int $id): bool
 {
-    $pdo = connexionBaseDeDonnees();
-    $stmt = $pdo->prepare("DELETE FROM team WHERE id = ?");
-    return $stmt->execute([$id]);
+    $co = connexionBaseDeDonnees();
+    $sql = "DELETE FROM team WHERE id = ?";
+    $req = $co->prepare($sql);
+    return $req->execute([$id]);
 }
 
 /**
@@ -531,14 +545,15 @@ function deleteEntraineur(int $id): bool
  */
 function getClasseById(int $id): array
 {
-    $pdo = connexionBaseDeDonnees();
-    $stmt = $pdo->prepare("
-        SELECT id, nom, niveau, prix, description, team_id, date_creation, updated_at
-        FROM classes
-        WHERE id = ?
-    ");
-    $stmt->execute([$id]);
-    return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    $co = connexionBaseDeDonnees();
+    $sql = "
+    SELECT id, nom, niveau, prix, description, team_id, date_creation, updated_at
+    FROM classes
+    WHERE id = ?
+    ";
+    $req = $co->prepare($sql);
+    $req->execute([$id]);
+    return $req->fetch(PDO::FETCH_ASSOC) ?: [];
 }
 
 /**
@@ -949,4 +964,141 @@ function enregistrerMessage(array $data): bool
         );
         return false;
     }
+}
+
+/**
+ * Renvoie la liste des témoignages à afficher.
+ * 
+ * @return array
+ */
+function getTestimonials(): array
+{
+    // À adapter : récupère depuis la BDD ou un fichier de config
+    return [
+        [
+            'quote' => 'Le club est exceptionnel, les coachs sont très professionnels.',
+            'name' => 'Sophie Dubois',
+            'role' => 'Mère de famille',
+        ],
+        [
+            'quote' => 'Je progresse rapidement grâce aux entraînements adaptés.',
+            'name' => 'Antoine Martin',
+            'role' => 'Étudiant',
+        ],
+        [
+            'quote' => 'Ambiance conviviale et sportive, je recommande à tous.',
+            'name' => 'Julien Lefèvre',
+            'role' => 'Salarié',
+        ],
+    ];
+}
+
+/**
+ * Paginer un tableau en mémoire.
+ *
+ * @param array  $all    Le tableau complet de lignes.
+ * @param string $param  Le nom du paramètre GET à lire pour la page courante (ex. 'p').
+ * @param int    $perPage Nombre d’éléments par page.
+ * @return array [ 'page' => int, 'perPage'=>int, 'total'=>int, 'totalPages'=>int, 'offset'=>int, 'slice'=>array ]
+ */
+function paginateArray(array $all, string $param, int $perPage = 10): array
+{
+    $total = count($all);
+    $totalPages = (int) ceil($total / $perPage);
+    $pageNum = isset($_GET[$param]) ? max(1, (int) $_GET[$param]) : 1;
+    if ($pageNum > $totalPages)
+        $pageNum = $totalPages;
+    $offset = ($pageNum - 1) * $perPage;
+    $slice = array_slice($all, $offset, $perPage);
+    return compact('pageNum', 'perPage', 'total', 'totalPages', 'offset', 'slice');
+}
+
+/** 
+ * Retourne la liste des auteurs possibles (ex : tous les admins/parents).
+ */
+function getAllUsers(): array
+{
+    $pdo = connexionBaseDeDonnees();
+    $sql = "
+    SELECT 
+    id, 
+    CONCAT(prenom,' ',nom) AS nom_complet, 
+    email, 
+    role,
+    DATE_FORMAT(created_at,'%d-%m-%Y') AS date_creation,
+    DATE_FORMAT(updated_at,'%d-%m-%Y') AS date_modification
+    FROM users 
+    ORDER BY id
+    ";
+    return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/** 
+ * Retourne la liste des auteurs possibles (ex : tous les admins/parents).
+ */
+function getAllClasses(): array
+{
+    $pdo = connexionBaseDeDonnees();
+    $sql = "
+        SELECT
+          c.id,
+          c.nom,
+          c.niveau,
+          CONCAT(c.prix,' €') AS prix_aff,
+          c.prix,
+          LEFT(c.description,100) AS extrait_desc,
+          CONCAT(t.prenom,' ',t.nom) AS entraineur,
+          DATE_FORMAT(c.date_creation,'%d-%m-%Y') AS date_creation,
+          DATE_FORMAT(c.updated_at,'%d-%m-%Y') AS date_modification
+        FROM classes c
+        LEFT JOIN team t ON t.id = c.team_id
+        ORDER BY c.nom
+    ";
+    return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/** 
+ * Retourne la liste des auteurs possibles (ex : tous les admins/parents).
+ */
+function getAllTrainers(): array
+{
+    $pdo = connexionBaseDeDonnees();
+    $sql = "
+        SELECT id,
+            CONCAT(prenom,' ',nom) AS nom_complet,
+            LEFT(bio,100) AS extrait_bio,
+            bio,
+            role,
+            DATE_FORMAT(created_at,'%d-%m-%Y') AS date_creation,
+            DATE_FORMAT(updated_at,'%d-%m-%Y') AS date_modification,
+            photo
+        FROM team
+        ORDER BY id
+    ";
+    return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Récupère le planning des cours sous forme de liste de lignes :
+ * [
+ *   ['jour'=>'Lundi', 'heure_debut'=>18, 'heure_fin'=>19, 'nom'=>'Adultes', 'niveau'=>'Avancé'],
+ *   …
+ * ]
+ * @return array
+ */
+function getCourseSchedule(): array
+{
+    $co = connexionBaseDeDonnees();
+    $sql = "
+    SELECT
+      s.jour AS jour,
+      s.heure_debut,
+      s.heure_fin,
+      c.nom,
+      c.niveau
+    FROM schedules AS s
+    INNER JOIN classes AS c ON s.class_id = c.id
+    ORDER BY s.jour 
+    ";
+    return $co->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 }

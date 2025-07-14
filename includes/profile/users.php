@@ -67,13 +67,19 @@ if ($isUpdate && empty($errors)) {
 $showForm = $isCreate || $isEdit || (!empty($errors) && ($isStore || $isUpdate));
 
 if (!$showForm) {
+
+    $baseUrl = "profile.php?page=" . $pageActuelle;
+
+    $all = getAllUsers();    
     // chargement du tableau
-    $rows = connexionBaseDeDonnees()
-        ->query("SELECT id, CONCAT(prenom,' ',nom) AS nom_complet, email, role,
-                      DATE_FORMAT(created_at,'%d-%m-%Y') AS date_creation,
-                      DATE_FORMAT(updated_at,'%d-%m-%Y') AS date_modification
-               FROM users ORDER BY id")
-        ->fetchAll(PDO::FETCH_ASSOC);
+    $pag = paginateArray($all, 'p', 5);
+    // on remplace les rows par le slice
+    $rows = $pag['slice'];
+    // et on récupère les infos de pagination
+    extract($pag); // pageNum, perPage, total, totalPages, offset, slice
+    $start = $pag['offset'] + 1;
+    $end = min($pag['offset'] + $perPage, $total);
+
 }
 
 // --- 9) Configuration table.php
@@ -103,12 +109,12 @@ $actions = [
 <?php displayFlash(); ?>
 
 <!-- Toolbar -->
-<div class="flex justify-between mb-4">
-    <h2 class="text-xl font-semibold">Gestion des utilisateurs</h2>
+<div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-bold text-gray-900">Gestion des utilisateurs</h2>
     <?php if (!$showForm): ?>
         <form method="post">
             <input type="hidden" name="action" value="create">
-            <button class="bg-green-600 px-4 py-2 rounded text-white hover:bg-green-700">
+            <button class="bg-blue-600 px-4 py-2 rounded text-white hover:bg-blue-700">
                 <i class="fas fa-plus mr-1"></i>Ajouter
             </button>
         </form>
@@ -117,7 +123,11 @@ $actions = [
 
 <!-- Liste ou formulaire -->
 <?php if (!$showForm): ?>
-    <?php include __DIR__ . '/../components/table.php'; ?>
+    <div>
+        <?php include __DIR__ . '/../components/table.php'; ?>
+        <?php include __DIR__ . '/../components/pagination.php'; ?>
+    </div>
+    
 <?php else: ?>
     <!-- Affichage des erreurs si présentes -->
     <?php if (!empty($errors)): ?>
@@ -131,7 +141,7 @@ $actions = [
     <?php endif; ?>
 
     <!-- Formulaire create/edit -->
-    <form method="post" class="space-y-4 bg-white p-6 rounded shadow">
+    <form method="post" class="space-y-4 bg-white p-6 rounded">
         <input type="hidden" name="action" value="<?= $isEdit ? 'update' : 'store' ?>">
         <?php if ($isEdit): ?>
             <input type="hidden" name="id" value="<?= $id ?>">
@@ -144,7 +154,7 @@ $actions = [
                 class="w-full border p-2 rounded">
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid lg:grid-cols-2 gap-4">
             <div>
                 <label for="prenom">Prénom</label>
                 <input type="text" name="prenom" required value="<?= htmlspecialchars($record['prenom'] ?? '') ?>"
@@ -165,7 +175,7 @@ $actions = [
             </select>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid lg:grid-cols-2 gap-4">
             <div>
                 <label>Mot de passe <?= $isEdit ? '<small>(laisser vide pour garder)</small>' : '' ?></label>
                 <input type="password" name="motdepasse" <?= $isEdit ? '' : 'required' ?> class="w-full border p-2 rounded">

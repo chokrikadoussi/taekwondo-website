@@ -39,7 +39,7 @@
 
         <!-- Liens de navigation -->
         <nav aria-label="Menu principal" class="hidden md:flex md:items-center space-y-4 md:space-y-0 md:space-x-8">
-            <ul class="flex space-x-6">
+            <ul class="flex space-x-2 md:space-x-2 lg:space-x-2">
                 <li><a href="index.php"
                         class="block px-3 py-2 rounded-md text-sm font-medium <?= $pageActuelle === 'home' ? 'bg-white text-black' : 'hover:bg-gray-800 hover:text-accent' ?>">Accueil</a>
                 </li>
@@ -57,7 +57,7 @@
                 </li>
             </ul>
         </nav>
-        <div class="hidden md:flex items-center space-x-4">
+        <div class="hidden md:flex items-center space-x-2 md:space-x-4 lg:space-x-4">
             <?php if (!isset($_SESSION['user']['id'])) { ?>
                 <a href="login.php"
                     class="block px-7 py-2 text-sm font-medium bg-white text-black rounded-md hover:bg-gray-100 transition">Connexion</a>
@@ -66,7 +66,7 @@
                 <a href="profile.php" class="block px-3 py-2 rounded-md text-sm font-medium">Mon Compte</a>
                 <form action="logout.php" method="post" class="inline">
                     <button type="submit" name="submit-deconnect"
-                        class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition">
+                        class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition font-medium">
                         Déconnexion
                     </button>
                 </form>

@@ -4,21 +4,9 @@ $pageTitle = 'Entraîneurs';
 $pageActuelle = 'team';
 
 require __DIR__ . '/fonction/fonctions.php';
-$pdo = connexionBaseDeDonnees();
 
 // Récupération des entraîneurs
-$trainers = $pdo
-    ->query("
-        SELECT
-          id,
-          CONCAT(prenom, ' ', nom) AS nom_complet,
-          role,
-          bio,
-          DATE_FORMAT(created_at, '%d-%m-%Y') AS date_creation
-        FROM team
-        ORDER BY nom_complet
-    ")
-    ->fetchAll(PDO::FETCH_ASSOC);
+$trainers = getAllTrainers();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -32,16 +20,17 @@ $trainers = $pdo
 
     <main class="flex-grow container mx-auto px-4 py-12">
         <h1 class="text-3xl font-semibold mb-8 text-center">Notre équipe</h1>
+        <div></div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             <?php foreach ($trainers as $t): ?>
                 <article class="bg-white rounded-lg shadow p-6 flex flex-col">
                     <!-- Photo si tu en as une dans la DB, sinon avatar générique -->
                     <?php if (!empty($t['photo'] ?? '')): ?>
-                        <img src="<?= htmlspecialchars($t['photo'], ENT_QUOTES) ?>"
+                        <img src="img/<?= htmlspecialchars($t['photo'], ENT_QUOTES) ?>"
                             alt="Photo de <?= htmlspecialchars($t['nom_complet'], ENT_QUOTES) ?>"
-                            class="h-48 w-full object-cover rounded-md mb-4">
+                            class="h-128 w-full object-cover rounded-md mb-4">
                     <?php else: ?>
-                        <div class="h-48 w-full bg-gray-100 rounded-md mb-4 flex items-center justify-center text-gray-400">
+                        <div class="h-128 w-full bg-gray-100 rounded-md mb-4 flex items-center justify-center text-gray-400">
                             <i class="fas fa-user-circle fa-5x"></i>
                         </div>
                     <?php endif; ?>

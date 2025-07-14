@@ -2,8 +2,8 @@
 // public/includes/footer.php
 // À inclure juste avant </body> de chaque page
 ?>
-<footer class="bg-white border-t mt-12">
-    <div class="mx-auto max-w-7xl px-4 py-6 text-center text-sm text-gray-600">
+<footer class="bg-black border-t mt-12 relative bottom-0 w-full">
+    <div class="mx-auto max-w-7xl px-4 py-6 text-center text-sm text-white">
         <p>&copy; <?= date('Y') ?> Taekwondo Club St Priest. Tous droits réservés.</p>
 
         <!-- Icônes réseaux sociaux -->

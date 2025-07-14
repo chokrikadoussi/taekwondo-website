@@ -108,8 +108,7 @@ $posts = array_slice(getAllPosts(150), 0, 3);
                     class="absolute bottom-0 right-0 h-full object-cover" />
             </section>
         </div>
-        <!-- Separator -->
-        <div class="my-12 border-t border-gray-200"></div>
+
 
         <!-- Questionnaire Section -->
         <section class="bg-gray-50 py-8">
@@ -127,8 +126,7 @@ $posts = array_slice(getAllPosts(150), 0, 3);
             </div>
         </section>
 
-        <!-- Separator -->
-        <div class="my-12 border-t border-gray-200"></div>
+
 
         <!-- News Section -->
         <section class="py-12 bg-gray-100">
@@ -184,6 +182,46 @@ $posts = array_slice(getAllPosts(150), 0, 3);
                     <a href="news.php" class="inline-block text-gray-700 hover:text-blue-600 transition">
                         Voir toutes les actualités
                     </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonials Carousel -->
+        <section id="testimonials" class="bg-white py-12">
+            <div class="container mx-auto px-4">
+                <h2 class="text-2xl font-semibold text-center mb-8">Ils nous recommandent</h2>
+                <div class="relative overflow-hidden">
+                    <!-- Flèche Gauche -->
+                    <button id="carousel-prev"
+                        class="absolute left-0 top-1/2 transform -translate-y-1/2 text-black text-xl p-2 rounded-full z-20">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+
+                    <!-- Pistes (wrapper) -->
+                    <div id="carousel-wrapper" class="flex transition-transform duration-500 ease-out">
+                        <?php foreach (getTestimonials() as $t): ?>
+                            <figure class="flex-shrink-0 w-full md:w-1/2 lg:w-1/3 px-4">
+                                <blockquote class="text-center">
+                                    <p class="text-lg italic font-medium text-gray-900">
+                                        “<?= htmlspecialchars($t['quote'], ENT_QUOTES) ?>”</p>
+                                </blockquote>
+                                <figcaption class="flex items-center justify-center mt-6 space-x-3">
+                                    <div class="text-left">
+                                        <cite
+                                            class="block font-medium text-gray-900"><?= htmlspecialchars($t['name'], ENT_QUOTES) ?></cite>
+                                        <cite
+                                            class="block text-sm text-gray-500"><?= htmlspecialchars($t['role'], ENT_QUOTES) ?></cite>
+                                    </div>
+                                </figcaption>
+                            </figure>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <!-- Flèche Droite -->
+                    <button id="carousel-next"
+                        class="absolute right-0 top-1/2 transform -translate-y-1/2 text-black text-xl p-2 rounded-full z-20">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
                 </div>
             </div>
         </section>

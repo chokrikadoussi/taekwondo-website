@@ -48,8 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <?php include __DIR__ . '/includes/header.php'; ?>
 
-    <br>
-
     <main class="flex-grow container mx-auto px-4 py-8 max-w-md">
         <?php if (!empty($message_erreur)) { ?>
             <div class="mb-6 p-4 bg-red-100 text-red-800 rounded">
