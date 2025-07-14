@@ -1,5 +1,7 @@
 <?php
 session_start();
+$pageTitle = 'Inscription';
+$pageActuelle = 'register';
 require __DIR__ . '/fonction/fonctions.php';
 
 $pageTitle = "Register";

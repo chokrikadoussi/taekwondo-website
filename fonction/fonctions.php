@@ -637,14 +637,20 @@ function deleteClasse(int $id): bool
 /**
  * Récupère tous les messages, triés par non lus d’abord.
  */
-function getAllMessages(): array
+function getAllMessages(array $opts = [])
 {
     $pdo = connexionBaseDeDonnees();
-    return $pdo
-        ->query("SELECT id, nom, email, sujet, is_read, DATE_FORMAT(created_at,'%d-%m-%Y %H:%i') AS date_sent
-               FROM messages
-               ORDER BY is_read ASC, created_at DESC")
-        ->fetchAll(PDO::FETCH_ASSOC);
+    $sql = "
+    SELECT id, nom, email, sujet,
+    DATE_FORMAT(created_at,'%d-%m-%Y') AS date_sent,
+    is_read
+    FROM messages";
+    $params = [];
+    if (!empty($_GET['unread'])) {
+        $sql .= " WHERE is_read = 0";
+    }
+    $sql .= " ORDER BY created_at DESC";
+    return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 }
 
 /**
@@ -780,7 +786,8 @@ function getPostById(int $id): array
       p.titre,
       p.contenu,
       p.auteur,
-      CONCAT(u.prenom,' ',u.nom) AS auteur_nom
+      CONCAT(u.prenom,' ',u.nom) AS auteur_nom,
+      DATE_FORMAT(p.created_at,'%d-%m-%Y') AS date_publication
     FROM posts AS p
     JOIN users AS u ON u.id = p.auteur
     WHERE p.id = ?
@@ -790,31 +797,70 @@ function getPostById(int $id): array
 }
 
 /**
- * Récupère tous les articles.
+ * Récupère les posts, avec extrait, auteur, date, et liste de tags.
+ * Peut filtrer par tag et trier par date.
+ *
+ * @param int         $excerptLength  longueur de l’extrait
+ * @param string|null $filterTag      nom du tag à filtrer (ou null pour aucun filtre)
+ * @param string      $sort           'asc' ou 'desc' (par date de création)
+ * @return array
  */
-function getAllPosts(int $taille = 50): array
+function getAllPosts(int $excerptLength = 200, ?string $filterTag = null, string $sort = 'desc'): array
 {
     $pdo = connexionBaseDeDonnees();
-    return $pdo
-        ->query("
-        SELECT
-        p.id,
-        p.titre,
-        LEFT(p.contenu,". $taille . ") AS excerpt,
-        CONCAT(u.prenom,' ',u.nom) AS auteur_nom,
-        DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
-        DATE_FORMAT(p.updated_at,'%d-%m-%Y') AS updated_at,
-        (
-            SELECT GROUP_CONCAT(t.name ORDER BY t.name SEPARATOR ', ')
-            FROM post_tag pt
+    $sort = strtolower($sort) === 'asc' ? 'ASC' : 'DESC';
+
+    if ($filterTag) {
+        // filtre par tag
+        $sql = "
+            SELECT
+              p.id,
+              p.titre,
+              LEFT(p.contenu, :len) AS excerpt,
+              CONCAT(u.prenom,' ',u.nom) AS auteur_nom,
+              DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
+              DATE_FORMAT(p.updated_at,'%d-%m-%Y') AS updated_at,
+              -- concaténation des tags
+              (SELECT GROUP_CONCAT(t2.name SEPARATOR ', ')
+               FROM post_tag pt2
+               JOIN tags t2 ON t2.id = pt2.tag_id
+               WHERE pt2.post_id = p.id
+              ) AS tags
+            FROM posts p
+            JOIN post_tag pt ON pt.post_id = p.id
             JOIN tags t ON t.id = pt.tag_id
-            WHERE pt.post_id = p.id
-        ) AS tags
-        FROM posts p
-        JOIN users u ON u.id = p.auteur
-        ORDER BY p.created_at DESC
-    ")
-        ->fetchAll(PDO::FETCH_ASSOC);
+            JOIN users u ON u.id = p.auteur
+            WHERE t.name = :tag
+            GROUP BY p.id
+            ORDER BY p.created_at $sort
+        ";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute(['len' => $excerptLength, 'tag' => $filterTag]);
+    } else {
+        // sans filtre
+        $sql = "
+            SELECT
+              p.id,
+              p.titre,
+              LEFT(p.contenu, :len) AS excerpt,
+              CONCAT(u.prenom,' ',u.nom) AS auteur_nom,
+              DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
+              DATE_FORMAT(p.updated_at,'%d-%m-%Y') AS updated_at,
+              (SELECT GROUP_CONCAT(t2.name SEPARATOR ', ')
+               FROM post_tag pt2
+               JOIN tags t2 ON t2.id = pt2.tag_id
+               WHERE pt2.post_id = p.id
+              ) AS tags
+            FROM posts p
+            JOIN users u ON u.id = p.auteur
+            GROUP BY p.id
+            ORDER BY p.created_at $sort
+        ";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute(['len' => $excerptLength]);
+    }
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 /**
@@ -870,4 +916,47 @@ function getTagsForPost(int $postId): array
         ->execute([$postId])
         ? $pdo->query("SELECT t.name FROM tags t JOIN post_tag pt ON pt.tag_id=t.id WHERE pt.post_id=$postId")->fetchAll(PDO::FETCH_COLUMN)
         : [];
+}
+
+/**
+ * Récupère tous les tags existants, ordonnés alphabetiquement.
+ *
+ * @return array  Chaque élément : ['id' => int, 'name' => string]
+ */
+function getAllTags(): array
+{
+    $pdo = connexionBaseDeDonnees();
+    $stmt = $pdo->query("SELECT id, name FROM tags ORDER BY name");
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Insère un message de contact dans la table `messages`.
+ *
+ * @param array $data Doit contenir 'nom', 'email', 'contenu', 'sujet'
+ * @return bool true si OK, false sinon
+ */
+function enregistrerMessage(array $data): bool
+{
+    $pdo = connexionBaseDeDonnees();
+    $sql = "
+        INSERT INTO messages (nom, email, contenu, sujet)
+        VALUES (:nom, :email, :contenu, :sujet)
+    ";
+    $stmt = $pdo->prepare($sql);
+    try {
+        return $stmt->execute([
+            ':nom' => $data['nom'],
+            ':email' => $data['email'],
+            ':contenu' => $data['message'],
+            ':sujet' => $data['sujet'] ?? null,
+        ]);
+    } catch (PDOException $e) {
+        error_log(
+            date('Y-m-d H:i:s') . " | enregistrerMessage() PDO erreur: {$e->getMessage()}\n",
+            3,
+            __DIR__ . '/../../logs/bdd_erreurs.log'
+        );
+        return false;
+    }
 }

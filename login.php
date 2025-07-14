@@ -1,5 +1,7 @@
 <?php
 session_start();
+$pageTitle = 'Connexion';
+$pageActuelle = 'login';
 require __DIR__ . '/fonction/fonctions.php';
 
 $message_erreur = "";

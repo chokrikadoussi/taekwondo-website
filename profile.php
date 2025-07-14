@@ -36,7 +36,7 @@ $unreadCount = count(array_filter(getAllMessages(), fn($m)=> $m['is_read']==0));
 
                 <?php if ($role === 'admin') { ?>
                     <?php foreach (array(
-                        'users' => 'Gestion utilisateurs',
+                        'users' => 'Utilisateurs',
                         'posts' => 'Actualités',
                         'classes' => 'Cours',
                         'team' => 'Entraîneurs',
