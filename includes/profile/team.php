@@ -25,7 +25,7 @@ $isEdit = $isEdit || ($isUpdate && !empty($errors));
 // 6) Chargement du record pour le form
 if ($isEdit) {
     if ($action === 'edit') {
-        $record = getTrainerById($id) ?: redirectToProfile('team');
+        $record = getTrainerById($id);
     } else {
         // update raté → on réaffiche les données saisies
         $record = $data;
@@ -40,13 +40,11 @@ elseif ($isCreate) {
 if ($isDestroy) {
     deleteEntraineur($id);
     setFlash('success', 'Entraîneur supprimé.');
-    redirectToProfile('team');
 }
 
 if ($isStore && empty($errors)) {
     enregistrerEntraineur($data);
     setFlash('success', 'Entraîneur créé.');
-    redirectToProfile('team');
 }
 
 if ($isUpdate && empty($errors)) {
@@ -57,7 +55,6 @@ if ($isUpdate && empty($errors)) {
         'photo' => $data['photo'] ?? null
     ]);
     setFlash('success', 'Entraîneur mis à jour.');
-    redirectToProfile('team');
 }
 
 // 8) Choix form ou tableau

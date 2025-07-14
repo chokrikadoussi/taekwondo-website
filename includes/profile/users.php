@@ -26,7 +26,7 @@ $isEdit = $isEdit || ($isUpdate && !empty($errors));
 if ($isEdit) {
     // édition initiale
     if ($action === 'edit') {
-        $record = getUserById($id) ?: redirectToProfile('users');
+        $record = getUserById($id);
     }
     // update raté
     else {
@@ -42,14 +42,12 @@ elseif ($isCreate) {
 if ($isDestroy) {
     deleteUser($id);
     setFlash('success', 'Utilisateur supprimé.');
-    redirectToProfile('users');
 }
 
 if ($isStore && empty($errors)) {
     $data['mdp_securise'] = password_hash($data['motdepasse'], PASSWORD_DEFAULT);
     enregistrerUtilisateur($data);
     setFlash('success', 'Utilisateur créé.');
-    redirectToProfile('users');
 }
 
 if ($isUpdate && empty($errors)) {
@@ -63,7 +61,6 @@ if ($isUpdate && empty($errors)) {
         'role' => $data['role']
     ]);
     setFlash('success', 'Utilisateur mis à jour.');
-    redirectToProfile('users');
 }
 
 // --- 8) Affichage : choix entre form ou tableau

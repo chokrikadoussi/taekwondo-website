@@ -1,5 +1,4 @@
 <?php
-// includes/profile/overview.php
 // On suppose que $user contient :
 // ['id','prenom','nom','email','role','created_at']
 ?>
@@ -37,7 +36,7 @@
       href="profile.php?page=edit_profile"
       class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition"
     >
-      <i class="fas fa-user-edit mr-2"></i>Modifier mon profil
+      <i class="fas fa-user-edit mr-2"></i>Modifier mes informations
     </a>
   </div>
 </div>

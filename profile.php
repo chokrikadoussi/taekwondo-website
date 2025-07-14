@@ -31,9 +31,7 @@ $unreadCount = count(array_filter(getAllMessages(), fn($m)=> $m['is_read']==0));
         <aside class="w-full md:w-1/4 bg-gray-100 rounded-lg p-4">
             <nav class="space-y-1">
                 <a href="profile.php"
-                    class="block px-4 py-2 rounded hover:bg-blue-100 <?= $pageActuelle === 'overview' ? 'bg-blue-200' : '' ?>">Mon
-                    profil</a>
-
+                    class="block px-4 py-2 rounded hover:bg-blue-100 <?= $pageActuelle === 'overview' ? 'bg-blue-200' : '' ?>">Mes informations</a>
                 <?php if ($role === 'admin') { ?>
                     <?php foreach (array(
                         'users' => 'Utilisateurs',

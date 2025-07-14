@@ -30,7 +30,7 @@ $isEdit = $isEdit || ($isUpdate && !empty($errors));
 // 6) Chargement du record
 if ($isEdit) {
     if ($action === 'edit') {
-        $record = getClasseById($id) ?: redirectToProfile('classes');
+        $record = getClasseById($id);
     } else {
         // réaffiche données saisies après erreur
         $record = $data;
@@ -44,13 +44,11 @@ if ($isEdit) {
 if ($isDestroy) {
     deleteClasse($id);
     setFlash('success', 'Cours supprimé.');
-    redirectToProfile('classes');
 }
 
 if ($isStore && empty($errors)) {
     enregistrerClasse($data);
     setFlash('success', 'Cours créé.');
-    redirectToProfile('classes');
 }
 
 if ($isUpdate && empty($errors)) {
@@ -62,7 +60,6 @@ if ($isUpdate && empty($errors)) {
         'team_id' => $data['team_id'],
     ]);
     setFlash('success', 'Cours mis à jour.');
-    redirectToProfile('classes');
 }
 
 // 8) Affichage : form ou table

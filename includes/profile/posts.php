@@ -27,7 +27,7 @@ $isEdit = $isEdit || ($isUpdate && !empty($errors));
 // 6) Chargement du record pour le formulaire
 if ($isEdit) {
     if ($action === 'edit') {
-        $record = getPostById($id) ?: redirectToProfile('posts');
+        $record = getPostById($id);
         $record['tags'] = implode(', ', getTagsForPost($id));
     } else {
         // update raté → on ré-affiche les valeurs que l’utilisateur venait de saisir
@@ -48,14 +48,12 @@ elseif ($isCreate) {
 if ($isDestroy) {
     deletePost($id);
     setFlash('success', 'Article supprimé.');
-    redirectToProfile('posts');
 }
 
 if ($isStore && empty($errors)) {
     $newId = enregistrerPost($data);
     syncPostTags($newId, $data['tags'] ?? '');
     setFlash('success', 'Article créé.');
-    redirectToProfile('posts');
 }
 
 if ($isUpdate && empty($errors)) {
@@ -66,7 +64,6 @@ if ($isUpdate && empty($errors)) {
     ]);
     syncPostTags($id, $data['tags'] ?? '');
     setFlash('success', 'Article mis à jour.');
-    redirectToProfile('posts');
 }
 
 // 8) Ou on affiche le tableau

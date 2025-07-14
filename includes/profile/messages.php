@@ -6,13 +6,11 @@ $id = (int) ($_POST['id'] ?? 0);
 if ($action === 'mark_read' && $id > 0) {
     markMessageRead($id);
     setFlash('success', 'Message marqué comme lu.');
-    redirectToProfile('messages');
 }
 
 if ($action === 'destroy' && $id > 0) {
     deleteMessage($id);
     setFlash('success', 'Message supprimé.');
-    redirectToProfile('messages');
 }
 
 // 1) Charge tous les messages (filtrés si nécessaire)
@@ -55,7 +53,6 @@ if ($viewId > 0) {
     $msg = getMessageById($viewId);
     if (!$msg) {
         setFlash('error', 'Message introuvable.');
-        redirectToProfile('messages');
     }
     // Si on clique pour lire, on le marque lu
     if (!$msg['is_read']) {

@@ -416,16 +416,6 @@ function validateUserData(array $data, ?int $excludeId = null): array
 }
 
 /**
- * Redirige vers la page du profile Admin correspondante.
- * @param string $page Page de destination
- */
-function redirectToProfile(string $page): void
-{
-    header("Location: profile.php?page=" . $page);
-    exit;
-}
-
-/**
  * Définit un flash message (success|error).
  */
 function setFlash(string $type, string $msg): void
