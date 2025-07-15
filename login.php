@@ -70,19 +70,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body class="min-h-screen flex flex-col bg-black">
     <canvas id="cursor-canvas"
-        style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;"
-        class="z-10"></canvas>
+        style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:-1;"></canvas>
 
     <?php include __DIR__ . '/includes/header.php'; ?>
 
 
     <main class="flex-grow flex items-center justify-center container mx-auto px-4 py-12">
-        <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-lg">
-            <h1 class="text-3xl font-bold mb-6 text-center text-gray-900">Se connecter</h1>
+        <div class="w-full max-w-md bg-white p-8 rounded-lg shadow-2xl">
+            <h1 class="text-3xl font-extrabold mb-6 text-center text-slate-900">Se connecter</h1>
 
             <?php if (!empty($errors)): ?>
-                <div class="mb-6 p-4 bg-red-100 text-red-800 rounded">
-                    <ul class="list-disc pl-5 space-y-1">
+                <div class="mb-6 p-4 bg-red-100 text-red-800 rounded-md border border-red-200">
+                    <ul class="list-disc pl-5 space-y-1 text-sm">
                         <?php foreach ($errors as $e): ?>
                             <li><?= htmlspecialchars($e, ENT_QUOTES) ?></li>
                         <?php endforeach; ?>
@@ -92,44 +91,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <form method="post" class="space-y-6">
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Adresse e-mail</label>
+                    <label for="email" class="block text-sm font-medium text-slate-700 mb-1">Adresse e-mail</label>
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                             <i class="fas fa-envelope"></i>
                         </span>
                         <input type="email" name="email" id="email" required
                             value="<?= htmlspecialchars($email, ENT_QUOTES) ?>"
-                            class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            class="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                             placeholder="vous@exemple.com">
                     </div>
                 </div>
 
                 <div>
-                    <label for="motdepasse" class="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+                    <label for="motdepasse" class="block text-sm font-medium text-slate-700 mb-1">Mot de passe</label>
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                             <i class="fas fa-lock"></i>
                         </span>
                         <input type="password" name="motdepasse" id="motdepasse" required
-                            class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            class="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                             placeholder="••••••••">
                     </div>
                 </div>
 
                 <button type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-md transition duration-200 shadow-sm cursor-pointer">
                     Se connecter
                 </button>
             </form>
 
-            <p class="mt-6 text-center text-gray-600">
+            <p class="mt-6 text-center text-sm text-slate-600">
                 Pas encore de compte ?
-                <a href="register.php" class="text-blue-600 hover:underline">Créez-en un</a>.
+                <a href="register.php" class="font-medium text-blue-600 hover:underline">Créez-en un</a>.
             </p>
         </div>
     </main>
     <?php include __DIR__ . '/includes/footer.php'; ?>
-
+    <script src="js/main.js" defer></script>
 </body>
 
 </html>
