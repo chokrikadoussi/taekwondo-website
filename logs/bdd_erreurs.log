@@ -22,3 +22,8 @@
 2025-07-14 22:57:09 | connexionBaseDeDonnees() PDO erreur: SQLSTATE[HY000] [1045] Accès refusé pour l'utilisateur: 'root'@'@localhost' (mot de passe: OUI)
 2025-07-14 22:57:22 | connexionBaseDeDonnees() PDO erreur: SQLSTATE[HY000] [1045] Accès refusé pour l'utilisateur: 'root'@'@localhost' (mot de passe: OUI)
 2025-07-14 22:59:05 | connexionBaseDeDonnees() PDO erreur: SQLSTATE[HY000] [1045] Accès refusé pour l'utilisateur: 'root'@'@localhost' (mot de passe: OUI)
+2025-07-15 17:56:25 | getListePosts() : SQLSTATE[42S22]: Column not found: 1054 Champ 'p.created_atDESC' inconnu dans order clause | Contexte : {}
+2025-07-15 18:26:47 | getTagsPourPost() : SQLSTATE[HY093]: Invalid parameter number: parameter was not defined | Contexte : {{"id":10}}
+2025-07-15 18:46:47 | getPostParId() : SQLSTATE[42000]: Syntax error or access violation: 1064 Erreur de syntaxe près de '.auteur,
+      CONCAT(u.prenom,' ',u.nom) AS auteur_nom,
+      DATE_FORMAT(p.c' à la ligne 6 | Contexte : {{"id":12}}

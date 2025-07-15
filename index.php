@@ -4,7 +4,7 @@ $pageTitle = 'Accueil';
 $pageActuelle = 'home';
 require __DIR__ . '/fonction/fonctions.php';
 
-$posts = array_slice(getAllPosts(150), 0, 3);
+$posts = array_slice(getListePosts(150), 0, 3);
 
 ?>
 
@@ -142,7 +142,7 @@ $posts = array_slice(getAllPosts(150), 0, 3);
                         <article
                             class="bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col hover:shadow-xl transition-shadow">
                             <!-- Placeholder image -->
-                            <div class="h-40 bg-gray-100 flex items-center justify-center text-gray-400">
+                            <div class="h-40 bg-gray-100 flex items-center justify-center text-gray-400 hidden md:inline lg:inline ">
                                 <i class="fas fa-newspaper fa-2x"></i>
                             </div>
 
@@ -199,7 +199,7 @@ $posts = array_slice(getAllPosts(150), 0, 3);
 
                     <!-- Pistes (wrapper) -->
                     <div id="carousel-wrapper" class="flex transition-transform duration-500 ease-out">
-                        <?php foreach (getTestimonials() as $t): ?>
+                        <?php foreach (getTemoignages() as $t): ?>
                             <figure class="flex-shrink-0 w-full md:w-1/2 lg:w-1/3 px-4">
                                 <blockquote class="text-center">
                                     <p class="text-lg italic font-medium text-gray-900">

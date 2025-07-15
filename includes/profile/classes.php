@@ -1,8 +1,6 @@
 <?php
-$pdo = connexionBaseDeDonnees();
-$listTrainers = $pdo
-    ->query("SELECT id, CONCAT(prenom,' ',nom) AS nom_complet FROM team ORDER BY nom_complet")
-    ->fetchAll(PDO::FETCH_ASSOC);
+
+$listTrainers = getListeEntraineurs();
 
 // 1) Lecture action + ID
 $action = $_POST['action'] ?? '';
@@ -21,7 +19,7 @@ $errors = [];
 
 // 4) Validation en cas de création ou modification
 if ($isStore || $isUpdate) {
-    $errors = validateClasseData($data, $isUpdate ? $id : null);
+    $errors = validerDonnesCours($data);
 }
 
 // 5) Déterminer si le formulaire doit rester visible
@@ -30,7 +28,7 @@ $isEdit = $isEdit || ($isUpdate && !empty($errors));
 // 6) Chargement du record
 if ($isEdit) {
     if ($action === 'edit') {
-        $record = getClasseById($id);
+        $record = getCoursParId($id);
     } else {
         // réaffiche données saisies après erreur
         $record = $data;
@@ -42,12 +40,12 @@ if ($isEdit) {
 
 // 7) Traitements store/update/destroy
 if ($isDestroy) {
-    deleteClasse($id);
+    supprimerCours($id);
     setFlash('success', 'Cours supprimé.');
 }
 
 if ($isStore && empty($errors)) {
-    enregistrerClasse($data);
+    enregistrerCours($data);
     setFlash('success', 'Cours créé.');
 }
 
@@ -66,7 +64,7 @@ if ($isUpdate && empty($errors)) {
 $showForm = $isCreate || $isEdit || (!empty($errors) && ($isStore || $isUpdate));
 
 if (!$showForm) {
-    $all = getAllClasses();
+    $all = getListeCours();
 
     $baseUrl = "profile.php?page=" . $pageActuelle;
     // chargement du tableau

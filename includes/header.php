@@ -41,19 +41,19 @@
         <nav aria-label="Menu principal" class="hidden md:flex md:items-center space-y-4 md:space-y-0 md:space-x-8">
             <ul class="flex space-x-2 md:space-x-2 lg:space-x-2">
                 <li><a href="index.php"
-                        class="block px-3 py-2 rounded-md text-sm font-medium <?= $pageActuelle === 'home' ? 'bg-white text-black' : 'hover:bg-gray-800 hover:text-accent' ?>">Accueil</a>
+                        class="block px-5 py-2 rounded-md text-sm font-medium <?= $pageActuelle === 'home' ? 'bg-white text-black' : 'hover:bg-gray-800 hover:text-accent' ?>">Accueil</a>
                 </li>
                 <li><a href="about.php"
-                        class="block px-3 py-2 rounded-md text-sm font-medium <?= $pageActuelle === 'about' ? 'bg-white text-black' : 'hover:bg-gray-800 hover:text-accent' ?>">Le
+                        class="block px-5 py-2 rounded-md text-sm font-medium <?= $pageActuelle === 'about' ? 'bg-white text-black' : 'hover:bg-gray-800 hover:text-accent' ?>">Le
                         Club</a></li>
                 <li><a href="team.php"
-                        class="block px-3 py-2 rounded-md text-sm font-medium <?= $pageActuelle === 'team' ? 'bg-white text-black' : 'hover:bg-gray-800 hover:text-accent' ?>">Équipe</a>
+                        class="block px-5 py-2 rounded-md text-sm font-medium <?= $pageActuelle === 'team' ? 'bg-white text-black' : 'hover:bg-gray-800 hover:text-accent' ?>">Équipe</a>
                 </li>
                 <li><a href="news.php"
-                        class="block px-3 py-2 rounded-md text-sm font-medium <?= $pageActuelle === 'news' ? 'bg-white text-black' : 'hover:bg-gray-800 hover:text-accent' ?>">Actualités</a>
+                        class="block px-5 py-2 rounded-md text-sm font-medium <?= $pageActuelle === 'news' ? 'bg-white text-black' : 'hover:bg-gray-800 hover:text-accent' ?>">Actualités</a>
                 </li>
                 <li><a href="contact.php"
-                        class="block px-3 py-2 rounded-md text-sm font-medium <?= $pageActuelle === 'contact' ? 'bg-white text-black' : 'hover:bg-gray-800 hover:text-accent' ?>">Contact</a>
+                        class="block px-5 py-2 rounded-md text-sm font-medium <?= $pageActuelle === 'contact' ? 'bg-white text-black' : 'hover:bg-gray-800 hover:text-accent' ?>">Contact</a>
                 </li>
             </ul>
         </nav>

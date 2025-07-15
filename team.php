@@ -6,7 +6,7 @@ $pageActuelle = 'team';
 require __DIR__ . '/fonction/fonctions.php';
 
 // Récupération des entraîneurs
-$trainers = getAllTrainers();
+$trainers = getListeEntraineurs();
 ?>
 <!DOCTYPE html>
 <html lang="fr">

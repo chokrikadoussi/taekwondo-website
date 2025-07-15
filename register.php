@@ -36,7 +36,7 @@ if ($data['prenom'] === '') {
 if ($data['nom'] === '') {
     $errors[] = 'Le nom est requis.';
 }
-if (utilisateurExiste($data['email'])) {
+if (isUtilisateur($data['email'])) {
     $errors[] = 'Cet e-mail est déjà utilisé.';
 }
 
@@ -44,7 +44,8 @@ if (utilisateurExiste($data['email'])) {
 if (empty($errors)) {
     $data['mdp_securise'] = password_hash($data['motdepasse'], PASSWORD_DEFAULT);
     if (enregistrerUtilisateur($data)) {
-        header('Location: login.php');
+        connexionUtilisateur($data['email']);
+        header("Location: profile.php");
         exit;
     }
     $errors[] = 'Erreur lors de l\'enregistrement.';
@@ -101,16 +102,6 @@ if (empty($errors)) {
                 </label>
                 <input type="password" name="mdp_confirm" id="mdp_confirm" required
                     class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-
-            <!-- Rôle -->
-            <div>
-                <label for="role" class="block text-sm font-medium text-gray-700 mb-1">Vous êtes</label>
-                <select name="role" id="role"
-                    class="w-full px-3 py-2 border border-gray-300 bg-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="membre">Adhérent</option>
-                    <option value="parent">Parent d'adhérent</option>
-                </select>
             </div>
 
             <!-- Bouton -->

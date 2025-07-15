@@ -18,7 +18,7 @@ $errors = [];
 
 // 4) Validation en création ou mise à jour
 if ($isStore || $isUpdate) {
-    $errors = validatePostData($data, $isUpdate ? $id : null);
+    $errors = validerDonneesPost($data);
 }
 
 // 5) On reste en “mode édition” si on vient de cliquer “edit” ou si un update a échoué
@@ -27,8 +27,8 @@ $isEdit = $isEdit || ($isUpdate && !empty($errors));
 // 6) Chargement du record pour le formulaire
 if ($isEdit) {
     if ($action === 'edit') {
-        $record = getPostById($id);
-        $record['tags'] = implode(', ', getTagsForPost($id));
+        $record = getPostParId($id);
+        $record['tags'] = implode(', ', getTagsPourPost($id));
     } else {
         // update raté → on ré-affiche les valeurs que l’utilisateur venait de saisir
         $record = $data;
@@ -41,19 +41,25 @@ elseif ($isCreate) {
         'contenu' => '',
         'auteur' => $_SESSION['user']['id'],
         'tags' => '',
+        'photo' => '',
     ];
 }
 
 // 7) Traitements store / update / destroy
 if ($isDestroy) {
-    deletePost($id);
+    supprimerPost($id);
     setFlash('success', 'Article supprimé.');
 }
 
 if ($isStore && empty($errors)) {
     $newId = enregistrerPost($data);
-    syncPostTags($newId, $data['tags'] ?? '');
-    setFlash('success', 'Article créé.');
+    // Si le post a été créé avec succès (donc id > 0)
+    if ($newId > 0) {
+        syncPostTags($newId, $data['tags'] ?? '');
+        setFlash('success', 'Article créé.');
+    } else {
+        setFlash('error', 'Erreur ! Article non créé.');
+    }
 }
 
 if ($isUpdate && empty($errors)) {
@@ -61,6 +67,7 @@ if ($isUpdate && empty($errors)) {
         'titre' => $data['titre'],
         'contenu' => $data['contenu'],
         'auteur' => $data['auteur'],
+        'photo' => $data['photo'],
     ]);
     syncPostTags($id, $data['tags'] ?? '');
     setFlash('success', 'Article mis à jour.');
@@ -70,7 +77,7 @@ if ($isUpdate && empty($errors)) {
 $showForm = $isCreate || $isEdit || (!empty($errors) && ($isStore || $isUpdate));
 
 if (!$showForm) {
-    $all = getAllPosts();
+    $all = getListePosts();
 
     $baseUrl = "profile.php?page=" . $pageActuelle;
     // chargement du tableau
@@ -84,8 +91,8 @@ if (!$showForm) {
 }
 
 // 9) Configuration du composant table.php
-$headers = ['ID', 'Titre', 'Extrait', 'Auteur', 'Tags', 'Créé le', 'Modifié le'];
-$fields = ['id', 'titre', 'excerpt', 'auteur_nom', 'tags', 'created_at', 'updated_at'];
+$headers = ['ID', 'Titre', 'Extrait', 'Auteur', 'Tags', 'Photo', 'Créé le', 'Modifié le'];
+$fields = ['id', 'titre', 'excerpt', 'auteur_nom', 'tags', 'photo', 'created_at', 'updated_at'];
 $formatters = [
     'excerpt' => fn($txt) => htmlspecialchars(mb_strimwidth(strip_tags($txt), 0, 50, '…'), ENT_QUOTES),
 ];
@@ -154,7 +161,7 @@ $actions = [
             <?php if ($isEdit) { ?>
                 <label class="block text-sm font-medium">Auteur</label>
                 <select name="auteur" required class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500">
-                    <?php foreach (getAllAuthors() as $a): ?>
+                    <?php foreach (getListeAuteurs() as $a): ?>
                         <option value="<?= $a['id'] ?>" <?= ($a['id'] == ($record['auteur'] ?? 0)) ? 'selected' : '' ?>>
                             <?= htmlspecialchars($a['nom_complet'], ENT_QUOTES) ?>
                         </option>
@@ -179,6 +186,13 @@ $actions = [
                 placeholder="ex : compétition, stage, club"
                 class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500">
             <small class="text-gray-500">Chaque mot sera transformé en tag.</small>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium">Photo (renseigné l'url)</label>
+            <input type="text" name="photo" value="<?= htmlspecialchars($record['photo'] ?? '', ENT_QUOTES) ?>"
+                placeholder="img/image.png"
+                class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500">
         </div>
 
         <div class="flex space-x-4">

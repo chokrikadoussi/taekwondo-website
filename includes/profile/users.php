@@ -16,7 +16,7 @@ $errors = [];
 
 // --- 4) Validation en cas de creation ou update
 if ($isStore || $isUpdate) {
-    $errors = validateUserData($data, $isUpdate ? $id : null);
+    $errors = validerDonneesUtilisateur($data, $isUpdate ? $id : null);
 }
 
 // --- 5) Détermine si on reste en mode édition après un update raté
@@ -26,7 +26,7 @@ $isEdit = $isEdit || ($isUpdate && !empty($errors));
 if ($isEdit) {
     // édition initiale
     if ($action === 'edit') {
-        $record = getUserById($id);
+        $record = getUtilisateurParId($id);
     }
     // update raté
     else {
@@ -40,7 +40,7 @@ elseif ($isCreate) {
 
 // --- 7) Traitements métier
 if ($isDestroy) {
-    deleteUser($id);
+    supprimerUtilisateur($id);
     setFlash('success', 'Utilisateur supprimé.');
 }
 
@@ -70,7 +70,7 @@ if (!$showForm) {
 
     $baseUrl = "profile.php?page=" . $pageActuelle;
 
-    $all = getAllUsers();    
+    $all = getListeUtilisateurs();    
     // chargement du tableau
     $pag = paginateArray($all, 'p', 5);
     // on remplace les rows par le slice

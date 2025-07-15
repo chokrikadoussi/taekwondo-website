@@ -23,8 +23,7 @@
         </div>
 
         <p class="mt-2">
-            <a href="privacy.php" class="hover:text-accent">Politique de confidentialité</a> •
-            <a href="terms.php" class="hover:text-accent">Mentions légales</a>
+            Merci au Master 2 PISE pour leur formation et leur soutien • Promotion 2024-2025
         </p>
     </div>
 </footer>

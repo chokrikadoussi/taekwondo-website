@@ -2,7 +2,7 @@
 session_start();
 require __DIR__ . '/fonction/fonctions.php';
 
-isConnected();
+requireConnexion();
 $user = $_SESSION['user'];
 $role = $user['role'];
 
@@ -11,7 +11,7 @@ $pageActuelle = $_GET['page'] ?? 'overview';
 $adminPages = ['users', 'posts', 'classes', 'team', 'messages', 'settings', 'create_user', 'edit_user', 'delete_user'];
 
 // Si l’utilisateur est admin, on récupère le nombre de messages non lus
-$unreadCount = count(array_filter(getAllMessages(), fn($m) => $m['is_read'] == 0));
+$unreadCount = count(array_filter(getListeMessages(), fn($m) => $m['is_read'] == 0));
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -100,7 +100,7 @@ $unreadCount = count(array_filter(getAllMessages(), fn($m) => $m['is_read'] == 0
                 <!-- Déconnexion -->
                 <li>
                     <form action="logout.php" method="post">
-                        <button type="submit"
+                        <button type="submit" name="submit-deconnect"
                             class="flex flex-col items-start lg:flex-row lg:items-center pl-3 py-2 rounded hover:bg-red-50 transition w-full">
                             <div class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-lg lg:mr-2">
                                 <i class="fas fa-sign-out-alt text-red-600"></i>

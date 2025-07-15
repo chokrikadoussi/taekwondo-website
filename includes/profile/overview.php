@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save') {
     $errors[] = 'Email invalide.';
   } elseif (
     $data['email'] !== $_SESSION['user']['email']
-    && utilisateurExiste($data['email'])
+    && isUtilisateur($data['email'])
   ) {
     $errors[] = 'Cet email est déjà utilisé.';
   }

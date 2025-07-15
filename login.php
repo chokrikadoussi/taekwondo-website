@@ -4,17 +4,13 @@ $pageTitle = 'Connexion';
 $pageActuelle = 'login';
 require __DIR__ . '/fonction/fonctions.php';
 
-$message_erreur = "";
-$pageTitle = "Login";
-
 $errors = [];
-$email  = '';
+$email = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
-    $mdp   = $_POST['motdepasse'] ?? '';
+    $mdp = $_POST['motdepasse'] ?? '';
 
-    // 1) Validation simple
     if ($email === '' || !estValideMail($email)) {
         $errors[] = 'Adresse e-mail invalide.';
     }
@@ -22,68 +18,116 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Veuillez saisir un mot de passe.';
     }
 
-    // 2) Authentification
     if (empty($errors) && !authentification($email, $mdp)) {
         $errors[] = 'Identifiants incorrects.';
     }
 
-    // 3) Connexion réussie
     if (empty($errors)) {
-        connexionUtilisateur($email);
-        header("Location: profile.php");
-        exit;
+        // Récupère les infos de l’utilisateur
+        $user = connexionUtilisateur($email);
+        if ($user) {
+            // On stocke l’utilisateur en session
+            $_SESSION['user'] = $user;
+            header("Location: profile.php");
+            exit;
+        } else {
+            // Cas improbable si auth a réussi
+            $errors[] = 'Impossible de charger votre profil.';
+        }
     }
 }
-
 ?>
-
 <!DOCTYPE html>
 <html lang="fr">
 
 <head>
     <?php include __DIR__ . '/includes/head.php'; ?>
+    <style>
+        /* style du point brillant avec box-shadow continu */
+        .cursor-trail {
+            position: absolute;
+            pointer-events: none;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(75, 132, 245, 0.9);
+            /* couleur de base */
+            box-shadow:
+                0 0 15px 15px rgba(75, 132, 245, 0.9);
+            /* petite lueur interne */
+            transform: translate(-50%, -50%) scale(1);
+            animation: trail-fade 0.6s ease-out forwards;
+        }
 
+        @keyframes trail-fade {
+            to {
+                transform: translate(-50%, -50%) scale(3);
+                opacity: 0;
+            }
+        }
+    </style>
 </head>
 
-<body>
+<body class="min-h-screen flex flex-col bg-black">
+    <canvas id="cursor-canvas"
+        style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;"
+        class="z-10"></canvas>
+
     <?php include __DIR__ . '/includes/header.php'; ?>
 
-    <main class="flex-grow container mx-auto px-4 py-8 max-w-md">
-        <?php if (!empty($message_erreur)) { ?>
-            <div class="mb-6 p-4 bg-red-100 text-red-800 rounded">
-                <?= htmlspecialchars($message_erreur, ENT_QUOTES, 'UTF-8') ?>
-            </div>
-        <?php } ?>
 
-        <form action="" method="post" class="space-y-4 bg-white p-6 rounded-lg shadow">
-            <h1 class="text-2xl font-semibold mb-4 text-center">Connexion</h1>
+    <main class="flex-grow flex items-center justify-center container mx-auto px-4 py-12">
+        <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-lg">
+            <h1 class="text-3xl font-bold mb-6 text-center text-gray-900">Se connecter</h1>
 
-            <div>
-                <label for="email" class="block text-sm font-medium mb-1">Email</label>
-                <input type="email" name="email" id="email" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-accent"
-                    value="<?= isset($_POST['email']) ? htmlspecialchars($_POST['email'], ENT_QUOTES, 'UTF-8') : '' ?>">
-            </div>
+            <?php if (!empty($errors)): ?>
+                <div class="mb-6 p-4 bg-red-100 text-red-800 rounded">
+                    <ul class="list-disc pl-5 space-y-1">
+                        <?php foreach ($errors as $e): ?>
+                            <li><?= htmlspecialchars($e, ENT_QUOTES) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
 
-            <div>
-                <label for="motdepasse" class="block text-sm font-medium mb-1">Mot de passe</label>
-                <input type="password" name="motdepasse" id="motdepasse" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-accent">
-            </div>
+            <form method="post" class="space-y-6">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Adresse e-mail</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                            <i class="fas fa-envelope"></i>
+                        </span>
+                        <input type="email" name="email" id="email" required
+                            value="<?= htmlspecialchars($email, ENT_QUOTES) ?>"
+                            class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            placeholder="vous@exemple.com">
+                    </div>
+                </div>
 
-            <button type="submit" name="submit"
-                class="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 transition">
-                Se connecter
-            </button>
-        </form>
+                <div>
+                    <label for="motdepasse" class="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                        <input type="password" name="motdepasse" id="motdepasse" required
+                            class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            placeholder="••••••••">
+                    </div>
+                </div>
 
-        <p class="mt-4 text-center text-sm">
-            Pas encore de compte ?
-            <a href="register.php" class="text-accent hover:underline">Créez-en un ici</a>.
-        </p>
+                <button type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">
+                    Se connecter
+                </button>
+            </form>
+
+            <p class="mt-6 text-center text-gray-600">
+                Pas encore de compte ?
+                <a href="register.php" class="text-blue-600 hover:underline">Créez-en un</a>.
+            </p>
+        </div>
     </main>
-
-
     <?php include __DIR__ . '/includes/footer.php'; ?>
 
 </body>

@@ -16,7 +16,7 @@ $errors = [];
 
 // 4) Validation en store/update
 if ($isStore || $isUpdate) {
-    $errors = validateTrainerData($data, $isUpdate ? $id : null);
+    $errors = validerDonnesEntraineur($data);  // TODO: ajouter excludeId si besoin
 }
 
 // 5) Détermine le « mode édition » si clic edit ou update raté
@@ -25,7 +25,7 @@ $isEdit = $isEdit || ($isUpdate && !empty($errors));
 // 6) Chargement du record pour le form
 if ($isEdit) {
     if ($action === 'edit') {
-        $record = getTrainerById($id);
+        $record = getEntraineurParId($id);
     } else {
         // update raté → on réaffiche les données saisies
         $record = $data;
@@ -38,7 +38,7 @@ elseif ($isCreate) {
 
 // 7) Traitements store/update/destroy
 if ($isDestroy) {
-    deleteEntraineur($id);
+    supprimerEntraineur($id);
     setFlash('success', 'Entraîneur supprimé.');
 }
 
@@ -62,7 +62,7 @@ $showForm = $isCreate || $isEdit || (!empty($errors) && ($isStore || $isUpdate))
 
 // 9) Si pas de form, on charge le tableau
 if (!$showForm) {
-    $all = getAllTrainers();
+    $all = getListeEntraineurs();
 
     $baseUrl = "profile.php?page=" . $pageActuelle;
     // chargement du tableau

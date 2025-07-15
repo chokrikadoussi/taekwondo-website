@@ -111,7 +111,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // Carroussel prix des cours
-// main.js
 
 document.addEventListener("DOMContentLoaded", () => {
   const carousel = document.getElementById("courses-carousel");
@@ -146,3 +145,105 @@ document.addEventListener("DOMContentLoaded", () => {
 
   updateArrows();
 });
+
+// Cartes Team
+document.querySelectorAll(".perspective").forEach((container) => {
+  const inner = container.querySelector(".card-inner");
+  const front = inner.querySelector(".card-front");
+  const back = inner.querySelector(".card-back");
+  const btnFlip = inner.querySelector(".btn-flip");
+  const btnUnflip = inner.querySelector(".btn-unflip");
+
+  // Mesure des hauteurs
+  const frontH = front.getBoundingClientRect().height;
+  const backH = back.getBoundingClientRect().height;
+  inner.style.height = frontH + "px";
+
+  btnFlip.addEventListener("click", () => {
+    inner.classList.add("flipped");
+    inner.style.height = backH + "px";
+  });
+  btnUnflip.addEventListener("click", () => {
+    inner.classList.remove("flipped");
+    inner.style.height = frontH + "px";
+  });
+});
+
+// Effet sur page login
+if (/Mobi|Android/i.test(navigator.userAgent)) {
+  console.log("Effet particules désactivé sur mobile");
+} else {
+  (function () {
+    const canvas = document.getElementById("cursor-canvas");
+    if (!canvas || !canvas.getContext) return; // fallback si pas supporté
+    const ctx = canvas.getContext("2d");
+    let cw, ch;
+
+    function resize() {
+      cw = canvas.width = window.innerWidth;
+      ch = canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    const particles = [];
+    const MAX_PARTICLES = 200;
+
+    class Particle {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 1.5 + 0.5;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.size = Math.random() * 4 + 2;
+        this.life = 80;
+        this.opacity = 1;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life--;
+        this.opacity = this.life / 80;
+      }
+      draw(ctx) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(75,132,245,${this.opacity})`;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = "rgba(75,132,245,0.7)";
+        ctx.fill();
+      }
+    }
+
+    function emit(x, y) {
+      for (let i = 0; i < 5; i++) {
+        if (particles.length < MAX_PARTICLES) {
+          particles.push(new Particle(x, y));
+        }
+      }
+    }
+
+    let lastTime = 0;
+    document.addEventListener("mousemove", (e) => {
+      const now = performance.now();
+      if (now - lastTime > 16) {
+        emit(e.clientX, e.clientY);
+        lastTime = now;
+      }
+    });
+
+    function animate() {
+      ctx.clearRect(0, 0, cw, ch);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.update();
+        p.draw(ctx);
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+      requestAnimationFrame(animate);
+    }
+    animate();
+  })();
+}

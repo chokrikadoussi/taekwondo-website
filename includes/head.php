@@ -6,4 +6,5 @@
 <meta name="keywords"
     content="taekwondo, club taekwondo, art martial, St Priest, entraînement, compétition, tkd, self-défense">
 <link href="css/styles.css" rel="stylesheet">
+<link rel="icon" href="img/icon-page" type="image/x-icon">
 <script src="https://kit.fontawesome.com/ad02441365.js" crossorigin="anonymous"></script>

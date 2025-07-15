@@ -1,65 +1,102 @@
 <?php
-/*
-==================================================================================================
-FICHIER REGROUPANT L'ENSEMBLE DES FONCTIONS UTILISEES PAR LE SITE
-==================================================================================================
-Auteur : Chokri Kadoussi
-Date : 14/07/2025
-Version : 2.0
-
-Présentation du fichier :
-
-    hehe
-    hehe
-
-*/
+/**
+ * @author Chokri Kadoussi
+ * @date 2025-07-15
+ * @version 1.0.0
+ * 
+ * Présentation du fichier :
+ * 
+ *     hehe
+ *     hehe
+ * 
+ * TODO:
+ * - Organiser le fichier
+ * - Ajouter les commentaires inter-fonctions
+ * - Ajouter les commentaires PHP Doc
+ * 
+ * ==================================================================================================
+ *                 FICHIER REGROUPANT L'ENSEMBLE DES FONCTIONS UTILISEES PAR LE SITE                 
+ * ==================================================================================================
+ * 
+ */
 
 // Récupération des paramètres et constantes
-require __DIR__ . "/../parametrage/param.php";
+require_once __DIR__ . "/../parametrage/param.php";
+
+
+//==================================================================================================
+//                                    BASE DE DONNEES / LOGS                 
+//==================================================================================================
+
+
 
 /**
- * Retourne une instance PDO unique configurée avec les constantes DB_*, ou false en cas d'erreur.
- * L'appelant devra choisir entre rediriger vers la page d'erreur (erreur.php) ou exit l'appel
- * 
- * @return PDO|false 
+ * Fonction utilitaire pour logger les erreurs de manière cohérente
+ * @param string $function Nom de la fonction qui a généré l'erreur
+ * @param string $message Message d'erreur à logguer
+ * @param array $context Tableau associatif lié au contexte de l'erreur
  */
-function connexionBaseDeDonnees()
+function logErreur(string $function, string $message, array $context = array()): void
 {
+    $contextStr = !empty($context) ? json_encode($context) : '';
+    error_log(
+        date('Y-m-d H:i:s') . " | " . $function . "() : " . $message . " | Contexte : {" . $contextStr . "}\n",
+        3,
+        LOG_PATH
+    );
+}
+
+/**
+ * Crée et maintient une connexion unique à la base de données MySQL via PDO
+ * L'appelant s'occupera de l'exception puis de la redirection en cas d'erreur (ex: vers la page erreur.php)
+ * 
+ * @return PDO Instance de connexion configuré à  partir des constantes DB_*
+ * @throws Exception En cas d'erreur de connexion
+ */
+function connexionBaseDeDonnees(): PDO
+{
+    // Utilisation d'un pattern singleton permettant l'unicité de connexion à la BDD.
     static $co = null;
 
+    // Si la connexion n'est pas déjà établie, on la crée
     if ($co === null) {
         // Construction du DSN à partir des constantes
         $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET;
 
         try {
-            $co = new PDO($dsn, DB_USER, DB_PASS, array(
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            ));
-        } catch (PDOException $e) {
-            // Affiche un message simplifié et arrête le script
-            // En prod, tu peux logger $e->getMessage() dans un fichier de log
-            error_log(
-                date('Y-m-d H:i:s') . " | connexionBaseDeDonnees() PDO erreur: " . $e->getMessage() . "\n",
-                3,
-                __DIR__ . '/../../logs/bdd_erreurs.log'
+            $options = array(
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,        // permet de lever une PDOException pour toute erreur SQL (connexion, requête mal formée…)
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,   // chaque ligne est retournée sous la forme d’un tableau associatif donc plus de doublon de données
             );
-            return false;
+            $co = new PDO($dsn, DB_USER, DB_PASS, $options);
+        } catch (PDOException $e) {
+            // Enregistrer le log d'erreur dans le fichier bdd_erreurs.log
+            logErreur(__FUNCTION__, $e->getMessage());
+            throw new Exception("Erreur de connexion à la base de données");
         }
     }
     return $co;
 }
 
+//==================================================================================================
+//                                         UTILISATEURS                 
+//==================================================================================================
+
 /**
- * Vérifie que l’e-mail est bien formé et renvoi un booléen
+ * Vérifie que l’e-mail est bien formatté
  * 
- * @param $email
- * @return bool
+ * @param $email L'adresse email à vérifier
+ * @return bool True si l'email est bien formatté, false sinon
  */
-function estValideMail($email)
+function estValideMail(string $email): bool
 {
-    return filter_var($email, FILTER_VALIDATE_EMAIL);
+    // Vérifier la longueur maximale (RFC 5321)
+    if (mb_strlen(trim($email)) > 254) {
+        return false;
+    }
+    return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
 }
+
 
 /**
  * Vérifie que le mot de passe remplit les critères :
@@ -68,51 +105,36 @@ function estValideMail($email)
  * - Au moins un chiffre
  * - Au moins un caractère spécial (non alphanumérique)
  *
- * @param $mdp
- * @return bool
+ * @param string $mdp Mot de passe à vérifier
+ * @return bool True si le mot de passe est valide, false sinon
  */
-function estValideMotdepasse($mdp)
+function estValideMotdepasse(string $mdp): bool
 {
-    // Vérification de la longueur minimale
-    if (mb_strlen($mdp) < 8) {
-        return false;
-    }
+    $criteres = array(
+        mb_strlen($mdp) >= PSSWD_MIN_LEN,              // longueur minimale
+        preg_match('/[A-Z]/', $mdp),         // Au moins une majuscule
+        preg_match('/[0-9]/', $mdp),         // Au moins un chiffre
+        preg_match('/[^a-zA-Z\d]/', $mdp),   // Au moins un caractère spécial
+    );
 
-    // Vérification de la présence d’au moins une majuscule
-    if (!preg_match('/[A-Z]/', $mdp)) {
-        return false;
-    }
-
-    // Vérification de la présence d’au moins un chiffre
-    if (!preg_match('/[0-9]/', $mdp)) {
-        return false;
-    }
-
-    // Vérification de la présence d’au moins un caractère spécial
-    if (!preg_match('/[^a-zA-Z\d]/', $mdp)) {
-        return false;
-    }
-
-    return true;
+    // Si "false" n'est pas trouvé dans le tableau $critères alors retourne True
+    return !in_array(false, $criteres, true);
 }
 
-
 /**
- * Vérifie les identifiants d’un utilisateur.
+ * Authentifie un utilisateur avec email et mot de passe
  *
- * @param string $email
- * @param string $mdp
- * @return bool
+ * @param string $email Email de l'utilisateur
+ * @param string $mdp Mot de passe de l'utilisateur
+ * @return bool True si les identifiants sont existants et valides, false sinon
+ * @throws Exception En cas d'erreur de BDD durant l'auth
  */
-function authentification($email, $mdp)
+function authentification(string $email, string $mdp): bool
 {
     $co = connexionBaseDeDonnees();
-    if (!$co) {
-        // Échec de la connexion, déjà loggué dans connexionBaseDeDonnees()
-        return false;
-    }
 
     try {
+        // Récupération de l'email en base
         $req = $co->prepare(
             'SELECT id, mdp_securise 
             FROM users 
@@ -120,125 +142,122 @@ function authentification($email, $mdp)
         );
         $req->execute(array("email" => $email, ));
         $resultat = $req->fetch();
+
+        // Si aucun email trouvé, retourne false
+        if (!$resultat) {
+            return false;
+        }
+
+        // Vérification du mot de passe et validation de l'auth
+        return password_verify($mdp, $resultat['mdp_securise']);
+
     } catch (PDOException $e) {
-        error_log(
-            date('Y-m-d H:i:s')
-            . " | authentification PDO erreur: {$e->getMessage()}"
-            . " | email: {$email}\n",
-            3,
-            __DIR__ . '/../../logs/bdd_erreurs.log'
-        );
-        return false;
+        logErreur(__FUNCTION__, $e->getMessage(), array('email' => $email, ));
+        throw new Exception("Erreur lors de l'authentification");
     }
-
-    if (!$resultat) {
-        // Aucun utilisateur trouvé
-        return false;
-    }
-
-    // Vérification du mot de passe
-    return password_verify($mdp, $resultat['mdp_securise']);
 }
 
 /**
- * Charge les données utilisateur en session.
+ * Charge les données utilisateur depuis la base de données
  *
- * @param string $email
- * @return void
+ * @param string $email l'utilisateur
+ * @return array|null Les données utilisateur ou null si non trouvé
+ * @throws Exception En cas d'erreur de base de données
  */
-function connexionUtilisateur($email)
+function connexionUtilisateur(string $email): array|null
 {
     $co = connexionBaseDeDonnees();
-    if (!$co) {
-        return;
-    }
 
     try {
+        // Récupération des données utilisateur en base à partir de l'email
         $req = $co->prepare(
-            'SELECT id, prenom, nom, DATE_FORMAT(created_at,"%d-%m-%Y") as created_at, role
+            'SELECT id, prenom, nom, DATE_FORMAT(created_at,"%d-%m-%Y") AS created_at, role
              FROM users
              WHERE email = :email'
         );
         $req->execute(array("email" => $email, ));
         $user = $req->fetch();
-    } catch (PDOException $e) {
-        error_log(
-            date('Y-m-d H:i:s')
-            . " | login_user PDO erreur: {$e->getMessage()}"
-            . " | email: {$email}\n",
-            3,
-            __DIR__ . '/../../logs/bdd_erreurs.log'
-        );
-        return;
-    }
 
-    if ($user) {
-        $_SESSION['user'] = [
+        // Si aucun utilisateur trouvé, retourne null
+        if (!$user) {
+            return null;
+        }
+
+        // Retourne les données utilisateurs
+        return array(
             'id' => $user['id'],
             'email' => $email,
             'prenom' => $user['prenom'],
             'nom' => $user['nom'],
             'role' => $user['role'],
-            'created_at' => $user['created_at'],
-        ];
+            'date_creation' => $user['date_creation'],
+        );
+
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage(), array('email' => $email, ));
+        throw new Exception('Erreur lors du chargement des données utilisateur');
     }
 }
 
 /**
- * Retourne vrai si un utilisateur avec cet e-mail existe déjà, faux sinon
+ * Vérifie si un utilisateur existe avec cet email
  * 
- * @param $email
- * @return bool
+ * @param string $email Email à vérifier
+ * @param int|null $excludeId Id de l'utilisateur à exclure (si fiche de mise à jour utilisateur)
+ * @return bool True si un utilisateur avec cet e-mail existe déjà, faux sinon
+ * @throws Exception Erreur de base de données
  */
-function utilisateurExiste($email)
+function isUtilisateur(string $email, ?int $excludeId = null): bool
 {
-    if (!$co = connexionBaseDeDonnees()) {
-        return false;
+    $co = connexionBaseDeDonnees();
+
+    try {
+        // Renvoi 1 si l'utilisateur est existant en base de données
+        $sql = "SELECT 1 FROM users WHERE email = :email";
+        if ($excludeId) {
+            $sql .= " AND id <> :id";
+        }
+        $req = $co->prepare($sql);
+        $params = array('email' => $email, );
+        if ($excludeId) {
+            $params['id'] = $excludeId;
+        }
+        $req->execute($params);
+        return (bool) $req->fetchColumn();  // Test d'existence, si 1 alors True, false sinon
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage(), ['email' => $email]);
+        throw new Exception("Erreur lors de la vérification d'existence");
     }
-    $req = $co->prepare('SELECT 1 FROM users WHERE email = :email');
-    $req->execute(array("email" => $email, ));
-    return (bool) $req->fetchColumn();
 }
 
+// ---------------- CRUD utilisateurs ----------------
+
 /**
- * Applique un nettoyage minimal à toutes les valeurs d’un tableau :
- * - trim() pour retirer espaces début/fin
- * - strip_tags() pour ôter toutes balises HTML
+ * Enregistre un nouvel utilisateur en base de données
  *
- * @param $data Tableau associatif des champs à nettoyer
- * @return array      Tableau nettoyé
+ * @param array $donnees Données utilisateur (email, mdp_securise, prenom, nom)
+ * @return bool True si enregistrement réussi, false sinon
+ * @throws Exception En cas d'erreur de base de données
  */
-function nettoyerDonnees($data)
+function enregistrerUtilisateur(array $donnees): bool
 {
-    $clean = array();
-    foreach ($data as $key => $value) {
-        // Si c’est une chaîne, on la nettoie ; sinon (ex. int), on la conserve
-        if (is_string($value)) {
-            $clean[$key] = strip_tags(trim($value));
-        } else {
-            $clean[$key] = $value;
+    // Validation des champs requis pour l'enregistrement
+    $champsRequis = array('email', 'mdp_securise', 'prenom', 'nom', );
+    foreach ($champsRequis as $champ) {
+        if (empty($donnees[$champ])) {
+            throw new InvalidArgumentException("Le champ '" . $champ . "' est requis");
         }
     }
-    return $clean;
-}
 
-/**
- * Crée un nouvel utilisateur (membre ou parent)
- *
- * @param array $donnees Doit contenir 'email', 'motdepasse', 'prenom', 'nom'
- * @return bool       true si enregistrement OK, false sinon
- */
-function enregistrerUtilisateur($donnees)
-{
     $co = connexionBaseDeDonnees();
     $sql = "
       INSERT INTO users (email, mdp_securise, prenom, nom)
       VALUES (:email, :mdp_securise, :prenom, :nom)
     ";
 
-    $req = $co->prepare($sql);
-
     try {
+        // Insertion des données utilisateur dans la base de données
+        $req = $co->prepare($sql);
         return $req->execute(array(
             "email" => $donnees["email"],
             "mdp_securise" => $donnees["mdp_securise"],
@@ -246,213 +265,257 @@ function enregistrerUtilisateur($donnees)
             "nom" => $donnees["nom"],
         ));
     } catch (PDOException $e) {
-        error_log(
-            date('Y-m-d H:i:s')
-            . " | enregistrerUtilisateur() PDO erreur: " . $e->getMessage()
-            . " | email: " . $donnees['email'] . "\n",
-            3,
-            __DIR__ . '/../../logs/bdd_erreurs.log'
-        );
-        return false;
+        logErreur(__FUNCTION__, $e->getMessage(), array("email" => $donnees["email"], ));
+        throw new Exception("Erreur lors de l'enregistrement de l'utilisateur");
     }
-
 }
 
 /**
- * Summary of isConnected
- * @return bool
+ * Récupère la liste de tous les utilisateurs
+ * 
+ * @return array Liste des utilisateurs
+ * @throws Exception En cas d'erreur de base de données
  */
-function isConnected()
-{
-    if (!isset($_SESSION['user'])) {
-        header("Location: login.php");
-        exit;
-    }
-    return true;
-}
-
-/**
- * Summary of getListeUtilisateurs
- * @return array
- */
-function getListeUtilisateurs()
+function getListeUtilisateurs(): array
 {
     $co = connexionBaseDeDonnees();
-    $sql = "SELECT * FROM users";
-    $req = $co->prepare($sql);
-
-    $liste = array();
-    while ($row = $req->fetch()) {
-        array_push($liste, $row);
-    }
-
-    return $liste;
-}
-
-/**
- * Met à jour un utilisateur par son ID.
- *
- * @param int   $id     ID de l’utilisateur
- * @param array $fields Tableau associatif colonne=>valeur à mettre à jour
- * @return bool         true si la mise à jour a réussi, false sinon
- */
-function modifierUtilisateur($id, $fields)
-{
-    if (!$co = connexionBaseDeDonnees()) {
-        return false;
-    }
-
-    // Construction dynamique de la clause SET
-    $sets = array();
-    $params = array();
-    foreach ($fields as $col => $val) {
-        $sets[] = "$col = :$col";
-        $params[$col] = $val;
-    }
-    $params['id'] = $id;
-
     $sql = "
-    UPDATE users 
-    SET " . implode(', ', $sets) . " 
-    WHERE id = :id
+    SELECT 
+      id, 
+      CONCAT(prenom,' ',nom) AS nom_complet, 
+      email, 
+      role,
+      DATE_FORMAT(created_at,'%d-%m-%Y') AS date_creation,
+      DATE_FORMAT(updated_at,'%d-%m-%Y') AS date_modification
+    FROM users 
+    ORDER BY id
     ";
 
     try {
+        // Récupération de la liste des utilisateurs
+        $req = $co->prepare($sql);
+        $req->execute();
+        return $req->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage());
+        throw new Exception('Erreur lors de la récupération des utilisateurs');
+    }
+}
+
+/**
+ * Récupère un utilisateur par son ID
+ * 
+ * @param int $id ID de l'utilisateur
+ * @return array|null Données utilisateur ou null si non trouvé
+ * @throws Exception En cas d'erreur de base de données
+ */
+function getUtilisateurParId(int $id): array
+{
+    $co = connexionBaseDeDonnees();
+
+    try {
+        // Récupère les données de l'utilisateur
+        $req = $co->prepare('SELECT * FROM users WHERE id = :id');
+        $req->execute(array('id' => $id, ));
+        $result = $req->fetch(PDO::FETCH_ASSOC);
+
+        // Renvoi null si aucune ligne n'a été trouvée
+        return $result ? $result : null;
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage(), array('id' => $id, ));
+        throw new Exception("Erreur lors de la récupération de l'utilisateur");
+    }
+}
+
+/**
+ * Met à jour un utilisateur existant
+ *
+ * @param int $id ID de l’utilisateur
+ * @param array $donnees Tableau associatif des champs à mettre à jour
+ * @return bool True si la mise à jour a réussi, false sinon
+ * @throws Exception En cas d'erreur de base de données
+ */
+function modifierUtilisateur(int $id, array $donnees): bool
+{
+    // Vérifie si les champs requis sont présents, sinon renvoie exception
+    if (empty($donnees)) {
+        throw new InvalidArgumentException('Aucun champ à mettre à jour');
+    }
+
+    $co = connexionBaseDeDonnees();
+
+    try {
+        // Vérifier que l'utilisateur existe
+        if (!getUtilisateurParId($id)) {
+            return false;
+        }
+
+        // Construction dynamique de la clause SET
+        $sets = array();
+        $params = array();
+        foreach ($donnees as $key => $val) {
+            $sets[] = $key . "=" . ":$key";
+            $params[$key] = $val;
+        }
+        $params['id'] = $id;
+
+        // Construction de la requête SQL avec implode  
+        $sql = "
+            UPDATE users 
+            SET " . implode(', ', $sets) . " 
+            WHERE id = :id
+        ";
+
         $req = $co->prepare($sql);
         return $req->execute($params);
     } catch (PDOException $e) {
         // Log l’erreur en prod
-        error_log(
-            date('Y-m-d H:i:s') . " | updateUser PDO erreur: {$e->getMessage()} | id: {$id}\n",
-            3,
-            '/../../logs/bdd_erreurs.log'
-        );
-        return false;
+        logErreur(__FUNCTION__, $e->getMessage(), array("id" => $id, ));
+        throw new Exception("Erreur lors de la mise à jour de l'utilisateur");
     }
 }
 
 /**
- * Supprime un utilisateur par son ID.
- *
- * @param int $id ID de l’utilisateur à supprimer
- * @return bool   true si la suppression a réussi, false sinon
+ * Supprime un utilisateur par son id
+ * 
+ * @param int $id ID de l'utilisateur à supprimer
+ * @return bool True si suppression réussie, false sinon
+ * @throws Exception En cas d'erreur de base de données
  */
-function deleteUser(int $id): bool
+function supprimerUtilisateur(int $id): bool
 {
     $co = connexionBaseDeDonnees();
-    if (!$co) {
-        return false;
-    }
 
     try {
-        $req = $co->prepare('DELETE FROM `users` WHERE `id` = :id');
-        return $req->execute([':id' => $id]);
+        // Suppression de l'utilisateur
+        $req = $co->prepare("DELETE FROM users WHERE id = :id");
+        return $req->execute(array('id' => $id, ));
     } catch (PDOException $e) {
-        // En prod, logger l’erreur :
-        error_log(
-            date('Y-m-d H:i:s') . " | deleteUser PDO erreur: {$e->getMessage()} | id: {$id}\n",
-            3,
-            __DIR__ . '/../../logs/bdd_erreurs.log'
-        );
-        return false;
+        logErreur(__FUNCTION__, $e->getMessage(), array('id' => $id, ));
+        throw new Exception("Erreur lors de la suppression de l'utilisateur");
     }
-}
-
-/**
- * Renvoie l’utilisateur (assoc) ou [] si non trouvé.
- */
-function getUserById(int $id): array
-{
-    $co = connexionBaseDeDonnees();
-    $req = $co->prepare("SELECT * FROM users WHERE id = ?");
-    $req->execute([$id]);
-    return (array) $req->fetch(PDO::FETCH_ASSOC);
 }
 
 /**
  * Valide les données utilisateur pour create ou update.
- * @param array      $data      Nettoyé par nettoyerDonnees()
- * @param int|null   $excludeId Si non-null, exclut cet id pour l’unicité email
- * @return string[]  Liste d’erreurs (vide si OK)
+ * @param array $data Données à valider
+ * @param int|null $excludeId ID à exclure pour la vérification d'unicité
+ * @return array Liste des erreurs (vide si OK)
  */
-function validateUserData(array $data, ?int $excludeId = null): array
+function validerDonneesUtilisateur(array $data, ?int $excludeId = null): array
 {
-    $errors = [];
+    // Initialisation du tableau d'erreurs
+    $erreurs = array();
 
-    if (empty($data['email']) || !estValideMail($data['email'])) {
-        $errors[] = 'Adresse e-mail invalide.';
-    } else {
-        // unicité
-        $pdo = connexionBaseDeDonnees();
-        $sql = "SELECT COUNT(*) FROM users WHERE email = :email";
-        if ($excludeId) {
-            $sql .= " AND id <> :id";
+    // Validation email
+    try {
+        if (empty($data['email']) || !estValideMail($data['email'])) {
+            array_push($erreurs, 'Adresse e-mail invalide.');
+        } elseif (isUtilisateur($data['email'], $excludeId)) {
+            array_push($erreurs, 'Cet e-mail est déjà utilisé.');
         }
-        $req = $pdo->prepare($sql);
-        $params = ['email' => $data['email']];
-        if ($excludeId) {
-            $params['id'] = $excludeId;
-        }
-        $req->execute($params);
-        if ($req->fetchColumn() > 0) {
-            $errors[] = 'Cet e-mail est déjà utilisé.';
-        }
+    } catch (Exception $e) {
+        array_push($erreurs, 'Erreur en base de données. Merci de nous-contacter via la page contact.');
     }
 
-    if (!empty($data['motdepasse']) || $excludeId === null) {
+    // Validation mot de passe
+    if (!empty($data['motdepasse']) || $excludeId === null) {  // Si mot de passe est fourni ou si on est en update
         // si création (excludeId null) ou motdepasse renseigné en update
         if (empty($data['motdepasse']) || !estValideMotdepasse($data['motdepasse'])) {
-            $errors[] = 'Le mot de passe ne respecte pas les contraintes.';
+            array_push($erreurs, 'Le mot de passe ne respecte pas les contraintes.');
         }
         if ($data['motdepasse'] !== ($data['confirm'] ?? '')) {
-            $errors[] = 'La confirmation du mot de passe ne correspond pas.';
+            array_push($erreurs, 'La confirmation du mot de passe ne correspond pas.');
         }
     }
 
+    // Validation champs obligatoires
     if (empty($data['prenom'])) {
-        $errors[] = 'Le prénom est requis.';
+        array_push($erreurs, 'Le prénom est requis.');
     }
     if (empty($data['nom'])) {
-        $errors[] = 'Le nom est requis.';
+        array_push($erreurs, 'Le nom est requis.');
     }
 
-    return $errors;
+    return $erreurs;
 }
 
-/**
- * Définit un flash message (success|error).
- */
-function setFlash(string $type, string $msg): void
-{
-    $_SESSION['flash'][$type][] = $msg;
-}
+//==================================================================================================
+//                                           TEAM                 
+//==================================================================================================
 
 /**
- * Affiche puis vide les flash messages.
+ * Enregistre un nouvel entraineur en base de données
+ *
+ * @param array $donnees Données entraineur (prenom, nom, bio, photo)
+ * @return bool True si enregistrement réussi, false sinon
+ * @throws Exception En cas d'erreur de base de données
  */
-function displayFlash(): void
+function enregistrerEntraineur(array $donnees): bool
 {
-    if (empty($_SESSION['flash'])) {
-        return;
-    }
-    foreach ($_SESSION['flash'] as $type => $messages) {
-        $bg = $type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-        echo "<div class=\"mb-4 p-4 $bg rounded\">";
-        echo '<ul class="list-disc pl-5">';
-        foreach ($messages as $m) {
-            echo '<li>' . htmlspecialchars($m, ENT_QUOTES) . '</li>';
+
+    // Validation des champs requis pour l'enregistrement
+    $champsRequis = array('prenom', 'nom', 'bio', );
+    foreach ($champsRequis as $champ) {
+        if (empty($donnees[$champ])) {
+            throw new InvalidArgumentException("Le champ '" . $champ . "' est requis");
         }
-        echo '</ul></div>';
     }
-    unset($_SESSION['flash']);
+
+    $co = connexionBaseDeDonnees();
+    $sql = "
+    INSERT INTO team (prenom, nom, bio, photo, created_at, updated_at)
+    VALUES (:prenom, :nom, :bio, :photo, NOW(), NOW())
+    ";
+
+    try {
+        // Insertion des données entraineur dans la base de données
+        $req = $co->prepare($sql);
+        return $req->execute(array(
+            'prenom' => $donnees['prenom'],
+            'nom' => $donnees['nom'],
+            'bio' => $donnees['bio'],
+            'photo' => $donnees['photo'] ?? null, // Null si url (nom) photo n'est pas fournie
+        ));
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage(), array("nom" => $donnees["nom"], "prenom" => $donnees["prenom"], ));
+        throw new Exception("Erreur lors de l'enregistrement de l'entraineur");
+    }
 }
 
 /**
- * Récupère un entraîneur par son ID.
- * @param int $id
- * @return array
+ * Valide les données entraineur pour create ou update.
+ * 
+ * @param array $data Données à valider
+ * @return array Liste des erreurs (vide si OK)
  */
-function getTrainerById(int $id): array
+function validerDonnesEntraineur(array $data): array
+{
+    // Initialisation du tableau d'erreurs
+    $erreurs = array();
+
+    // Validation champs obligatoires
+    if (!isset($data['prenom']) || empty($data['prenom'])) {
+        array_push($erreurs, 'Le prénom est requis.');
+    }
+    if (!isset($data['nom']) || empty($data['nom'])) {
+        array_push($erreurs, 'Le nom est requis.');
+    }
+    if (!isset($data['bio']) || empty($data['bio'])) {
+        array_push($erreurs, 'La biographie est requise.');
+    }
+
+    return $erreurs;
+}
+
+/**
+ * Récupère un entraineur par son ID
+ * 
+ * @param int $id ID de l'entraineur
+ * @return array|null Données entraineur ou null si non trouvé
+ * @throws Exception En cas d'erreur de base de données
+ */
+function getEntraineurParId(int $id): array|null
 {
     $co = connexionBaseDeDonnees();
     $sql = "
@@ -460,211 +523,421 @@ function getTrainerById(int $id): array
     FROM team 
     WHERE id = :id
     ";
-    $req = $co->prepare($sql);
-    $req->execute(["id" => $id]);
-    return $req->fetch(PDO::FETCH_ASSOC) ?: [];
+
+    try {
+        // Récupère les données de l'utilisateur
+        $req = $co->prepare($sql);
+        $req->execute(array('id' => $id, ));
+        $result = $req->fetch(PDO::FETCH_ASSOC);
+
+        // Renvoi null si aucune ligne n'a été trouvée
+        return $result ? $result : null;
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage(), array('id' => $id, ));
+        throw new Exception("Erreur lors de la récupération de l'entraineur");
+    }
 }
 
 /**
- * Valide les données d’un entraîneur en création ou édition.
- * @param array $data
- * @param ?int $excludeId
- * @return array
+ * Récupère la liste de tous les entraineurs
+ * 
+ * @return array Liste des entraineurs
+ * @throws Exception En cas d'erreur de base de données
  */
-function validateTrainerData(array $data, ?int $excludeId = null): array
-{
-    $errors = [];
-    if (empty($data['prenom'])) {
-        $errors[] = 'Le prénom est requis.';
-    }
-    if (empty($data['nom'])) {
-        $errors[] = 'Le nom est requis.';
-    }
-    if (empty($data['bio'])) {
-        $errors[] = 'La biographie est requise.';
-    }
-    // (Optionnel : valider la taille de bio, le format de photo, etc.)
-    return $errors;
-}
-
-/**
- * Crée un nouvel entraîneur.
- * @param array $data
- * @return bool 
- */
-function enregistrerEntraineur(array $data): bool
+function getListeEntraineurs(): array
 {
     $co = connexionBaseDeDonnees();
     $sql = "
-    INSERT INTO team (prenom, nom, bio, photo, created_at, updated_at)
-    VALUES (:prenom, :nom, :bio, :photo, NOW(), NOW())
+    SELECT id,
+        CONCAT(prenom,' ',nom) AS nom_complet,
+        LEFT(bio,100) AS extrait_bio,
+        bio,
+        DATE_FORMAT(created_at,'%d-%m-%Y') AS date_creation,
+        DATE_FORMAT(updated_at,'%d-%m-%Y') AS date_modification,
+        photo
+    FROM team
+    ORDER BY id
     ";
-    $req = $co->prepare($sql);
-    return $req->execute([
-        'prenom' => $data['prenom'],
-        'nom' => $data['nom'],
-        'bio' => $data['bio'],
-        'photo' => $data['photo'] ?? null,
-    ]);
-}
 
-/**
- * Met à jour un entraîneur existant.
- */
-function modifierEntraineur(int $id, array $fields): bool
-{
-    $co = connexionBaseDeDonnees();
-    $sets = [];
-    $params = [];
-    foreach ($fields as $col => $val) {
-        $sets[] = "$col = :$col";
-        $params[$col] = $val;
+    try {
+        // Récupération de la liste des entraineurs
+        $req = $co->prepare($sql);
+        $req->execute();
+        return $req->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage());
+        throw new Exception('Erreur lors de la récupération des entraineurs');
     }
-    $params['id'] = $id;
-    $sql = "
-    UPDATE team SET " . implode(',', $sets) . ", updated_at = NOW() 
-    WHERE id = :id
-    ";
-    $req = $co->prepare($sql);
-    return $req->execute($params);
 }
 
 /**
- * Supprime un entraîneur.
+ * Met à jour un entraineur existant
+ *
+ * @param int $id ID de l'entraineur
+ * @param array $donnees Tableau associatif des champs à mettre à jour
+ * @return bool True si la mise à jour a réussi, false sinon
+ * @throws Exception En cas d'erreur de base de données
  */
-function deleteEntraineur(int $id): bool
+function modifierEntraineur(int $id, array $donnees): bool
+{
+    // Vérifie si les champs requis sont présents, sinon renvoie exception
+    if (empty($donnees)) {
+        throw new InvalidArgumentException('Aucun champ à mettre à jour');
+    }
+
+    $co = connexionBaseDeDonnees();
+
+    try {
+        // Vérifier que l'entraineur existe
+        if (!getEntraineurParId($id)) {
+            return false;
+        }
+
+        // Construction dynamique de la clause SET
+        $sets = array();
+        $params = array();
+        foreach ($donnees as $key => $val) {
+            $sets[] = $key . "=" . ":$key";
+            $params[$key] = $val;
+        }
+        $params['id'] = $id;
+
+        // Construction de la requête SQL avec implode  
+        $sql = "
+            UPDATE team 
+            SET " . implode(', ', $sets) . " 
+            WHERE id = :id
+        ";
+
+        $req = $co->prepare($sql);
+        return $req->execute($params);
+    } catch (PDOException $e) {
+        // Log l’erreur en prod
+        logErreur(__FUNCTION__, $e->getMessage(), array("id" => $id, ));
+        throw new Exception("Erreur lors de la mise à jour de l'entraineur");
+    }
+}
+
+/**
+ * Supprime un entraineur par son id
+ * 
+ * @param int $id ID de l'entraineur à supprimer
+ * @return bool True si suppression réussie, false sinon
+ * @throws Exception En cas d'erreur de base de données
+ */
+function supprimerEntraineur(int $id): bool
 {
     $co = connexionBaseDeDonnees();
-    $sql = "DELETE FROM team WHERE id = ?";
-    $req = $co->prepare($sql);
-    return $req->execute([$id]);
+
+    try {
+        // Suppression de l'entraineur
+        $req = $co->prepare("DELETE FROM team WHERE id = :id");
+        return $req->execute(array('id' => $id, ));
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage(), array('id' => $id, ));
+        throw new Exception("Erreur lors de la suppression de l'entraineur");
+    }
 }
 
+//==================================================================================================
+//                                           COURS                 
+//==================================================================================================
+
 /**
- * Récupère un cours par son ID.
+ * Récupère un cours par son ID
+ * 
+ * @param int $id ID du cours
+ * @return array|null Données cours ou null si non trouvé
+ * @throws Exception En cas d'erreur de base de données
  */
-function getClasseById(int $id): array
+function getCoursParId(int $id): array
 {
     $co = connexionBaseDeDonnees();
     $sql = "
     SELECT id, nom, niveau, prix, description, team_id, date_creation, updated_at
     FROM classes
-    WHERE id = ?
+    WHERE id = :id
     ";
-    $req = $co->prepare($sql);
-    $req->execute([$id]);
-    return $req->fetch(PDO::FETCH_ASSOC) ?: [];
+
+    try {
+        // Récupère les données du cours
+        $req = $co->prepare($sql);
+        $req->execute(array('id' => $id, ));
+        $result = $req->fetch(PDO::FETCH_ASSOC);
+
+        // Renvoi null si aucune ligne n'a été trouvée
+        return $result ? $result : null;
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage(), array('id' => $id, ));
+        throw new Exception("Erreur lors de la récupération du cours");
+    }
+}
+
+/** 
+ * Récupère la liste de tous les cours
+ * 
+ * @return array Liste des cours
+ * @throws Exception En cas d'erreur de base de données
+ */
+function getListeCours(): array
+{
+    $co = connexionBaseDeDonnees();
+    $sql = "
+        SELECT
+          c.id,
+          c.nom,
+          c.niveau,
+          CONCAT(c.prix,' €') AS prix_aff,
+          c.prix,
+          LEFT(c.description,100) AS extrait_desc,
+          CONCAT(t.prenom,' ',t.nom) AS entraineur,
+          DATE_FORMAT(c.date_creation,'%d-%m-%Y') AS date_creation,
+          DATE_FORMAT(c.updated_at,'%d-%m-%Y') AS date_modification
+        FROM classes c
+        LEFT JOIN team t ON t.id = c.team_id
+        ORDER BY c.nom
+    ";
+
+    try {
+        // Récupération de la liste des cours
+        $req = $co->prepare($sql);
+        $req->execute();
+        return $req->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage());
+        throw new Exception('Erreur lors de la récupération des cours');
+    }
 }
 
 /**
- * Valide les données d’un cours.
+ * Récupère le planning des cours
+ * 
+ * @return array Liste des cours selon leurs horaires
+ * @throws Exception En cas d'erreur de base de données
  */
-function validateClasseData(array $data, ?int $excludeId = null): array
+function getCoursPlanning(): array
 {
-    $errors = [];
-    if (empty($data['nom'])) {
-        $errors[] = 'Le nom du cours est requis.';
+    $co = connexionBaseDeDonnees();
+    $sql = "
+    SELECT
+      s.jour AS jour,
+      s.heure_debut,
+      s.heure_fin,
+      c.nom,
+      c.niveau
+    FROM schedules AS s
+    INNER JOIN classes AS c ON s.class_id = c.id
+    ORDER BY s.jour 
+    ";
+
+    try {
+        // Récupération du planning des cours
+        $req = $co->prepare($sql);
+        $req->execute();
+        return $req->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage());
+        throw new Exception('Erreur lors de la récupération du planning des cours');
     }
-    if (empty($data['niveau'])) {
-        $errors[] = 'Le niveau est requis.';
-    }
-    if (!isset($data['prix']) || !is_numeric($data['prix']) || $data['prix'] < 0) {
-        $errors[] = 'Le prix doit être un nombre positif.';
-    }
-    if (empty($data['description'])) {
-        $errors[] = 'La description est requise.';
-    }
-    // **Nouvelle validation team_id**
-    if (empty($data['team_id']) || !ctype_digit((string) $data['team_id'])) {
-        $errors[] = "L'entraîneur est requis.";
-    } else {
-        // vérifier que l’entraîneur existe bien
-        $pdo = connexionBaseDeDonnees();
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM team WHERE id = ?");
-        $stmt->execute([(int) $data['team_id']]);
-        if ($stmt->fetchColumn() == 0) {
-            $errors[] = "Entraîneur invalide.";
+}
+
+/**
+ * Valide les données d'un cours pour create ou update.
+ * 
+ * @param array $donnees Données à valider
+ * @return array Liste des erreurs (vide si OK)
+ */
+function validerDonnesCours(array $donnees): array
+{
+    $erreurs = array();
+
+    // Validation des champs requis
+    $champsRequis = ['nom', 'niveau', 'description'];
+    foreach ($champsRequis as $champ) {
+        if (empty($donnees[$champ])) {
+            array_push($erreurs, "Le champ '" . $champ . "' est requis.");
         }
     }
-    return $errors;
+
+    if (!isset($donnees['prix']) || !is_numeric($donnees['prix']) || $donnees['prix'] < 0) {
+        array_push($erreurs, 'Le prix doit être un nombre positif.');
+    }
+
+    // Validation du format de l'ID entraineur
+    if (empty($donnees['team_id']) || !ctype_digit((string) $donnees['team_id'])) {
+        array_push($erreurs, 'Un entraineur est requise.');
+    } else {
+        // Vérification de l’entraîneur ID
+        if (getEntraineurParId((int) $donnees['team_id']) == null) {
+            array_push($erreurs, 'L\'entraineur n\'existe pas.');
+        }
+    }
+
+    return $erreurs;
 }
 
 /**
- * Crée un nouveau cours.
+ * Enregistre un nouveau cours en base de données
+ *
+ * @param array $donnees Données cours (nom, niveau, description, prix)
+ * @return bool True si enregistrement réussi, false sinon
+ * @throws Exception En cas d'erreur de base de données
  */
-function enregistrerClasse(array $data): bool
+function enregistrerCours(array $donnees): bool
 {
-    $pdo = connexionBaseDeDonnees();
-    $stmt = $pdo->prepare("
-        INSERT INTO classes (nom, niveau, prix, description, date_creation, updated_at)
-        VALUES (:nom, :niveau, :prix, :description, NOW(), NOW())
-    ");
-    return $stmt->execute([
-        'nom' => $data['nom'],
-        'niveau' => $data['niveau'],
-        'prix' => $data['prix'],
-        'description' => $data['description'],
-    ]);
+    // Validation des champs requis pour l'enregistrement
+    $champsRequis = array('nom', 'niveau', 'prix', 'description', 'team_id', );
+    foreach ($champsRequis as $champ) {
+        if (empty($donnees[$champ])) {
+            throw new InvalidArgumentException("Le champ '" . $champ . "' est requis");
+        }
+    }
+
+    $co = connexionBaseDeDonnees();
+    $sql = "
+    INSERT INTO classes (nom, niveau, prix, description, team_id, date_creation, updated_at)
+    VALUES (:nom, :niveau, :prix, :description, :team_id, NOW(), NOW())
+    ";
+
+    try {
+        // Insertion des données entraineur dans la base de données
+        $req = $co->prepare($sql);
+        return $req->execute(array(
+            'nom' => $donnees['nom'],
+            'niveau' => $donnees['niveau'],
+            'prix' => $donnees['prix'],
+            'description' => $donnees['description'],
+            'team_id' => $donnees['team_id'],
+        ));
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage(), array(
+            "nom" => $donnees["nom"],
+            "niveau" => $donnees["niveau"],
+            "prix" => $donnees["prix"],
+        ));
+        throw new Exception("Erreur lors de l'enregistrement du cours");
+    }
 }
 
 /**
  * Met à jour un cours existant.
+ * 
+ * @param int $id ID du cours
+ * @param array $donnees Tableau associatif des champs à mettre à jour
+ * @return bool True si la mise à jour a réussi, false sinon
+ * @throws Exception En cas d'erreur de base de données
  */
-function modifierClasse(int $id, array $fields): bool
+function modifierClasse(int $id, array $donnees): bool
 {
-    $pdo = connexionBaseDeDonnees();
-    $sets = [];
-    $params = [];
-    foreach ($fields as $col => $val) {
-        $sets[] = "$col = :$col";
-        $params[$col] = $val;
+    // Vérifie si les champs requis sont présents, sinon renvoie exception
+    if (empty($donnees)) {
+        throw new InvalidArgumentException('Aucun champ à mettre à jour');
     }
-    $params['id'] = $id;
+
+    $co = connexionBaseDeDonnees();
+
+    try {
+        // Vérifier que le cours existe
+        if (!getCoursParId($id)) {
+            return false;
+        }
+
+        // Construction dynamique de la clause SET
+        $sets = array();
+        $params = array();
+        foreach ($donnees as $key => $val) {
+            $sets[] = $key . "=" . ":$key";
+            $params[$key] = $val;
+        }
+        $params['id'] = $id;
+
+        // Construction de la requête SQL avec implode  
+        $sql = "
+            UPDATE classes
+            SET " . implode(',', $sets) . ", updated_at = NOW()
+            WHERE id = :id
+        ";
+
+        $req = $co->prepare($sql);
+        return $req->execute($params);
+    } catch (PDOException $e) {
+        // Log l’erreur en prod
+        logErreur(__FUNCTION__, $e->getMessage(), array("id" => $id, ));
+        throw new Exception("Erreur lors de la mise à jour du cours");
+    }
+}
+
+/**
+ * Supprime un cours par id
+ * 
+ * @param int $id ID du cours à supprimer
+ * @return bool True si suppression réussie, false sinon
+ * @throws Exception En cas d'erreur de base de données
+ */
+function supprimerCours(int $id): bool
+{
+    $co = connexionBaseDeDonnees();
+
+    try {
+        // Suppression de l'entraineur
+        $req = $co->prepare("DELETE FROM classes WHERE id = :id");
+        return $req->execute(array('id' => $id, ));
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage(), array('id' => $id, ));
+        throw new Exception("Erreur lors de la suppression du cours");
+    }
+}
+
+//==================================================================================================
+//                                           MESSAGES                 
+//==================================================================================================
+
+/**
+ * Récupère la liste de tous les messages, non-lu en premier
+ * 
+ * @return array Liste des cours
+ * @throws Exception En cas d'erreur de base de données
+ */
+function getListeMessages(): array
+{
+    $co = connexionBaseDeDonnees();
+    // Requête dynamique prenant en compte l'état (lu ou non) du message
     $sql = "
-        UPDATE classes
-        SET " . implode(',', $sets) . ", updated_at = NOW()
-        WHERE id = :id
+    SELECT id, 
+        nom, 
+        email, 
+        sujet,
+        DATE_FORMAT(created_at,'%d-%m-%Y') AS date_sent,
+        is_read
+    FROM messages
     ";
-    $stmt = $pdo->prepare($sql);
-    return $stmt->execute($params);
-}
-
-/**
- * Supprime un cours.
- */
-function deleteClasse(int $id): bool
-{
-    $pdo = connexionBaseDeDonnees();
-    $stmt = $pdo->prepare("DELETE FROM classes WHERE id = ?");
-    return $stmt->execute([$id]);
-}
-
-/**
- * Récupère tous les messages, triés par non lus d’abord.
- */
-function getAllMessages(array $opts = [])
-{
-    $pdo = connexionBaseDeDonnees();
-    $sql = "
-    SELECT id, nom, email, sujet,
-    DATE_FORMAT(created_at,'%d-%m-%Y') AS date_sent,
-    is_read
-    FROM messages";
-    $params = [];
     if (!empty($_GET['unread'])) {
         $sql .= " WHERE is_read = 0";
     }
-    $sql .= " ORDER BY created_at DESC";
-    return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    $sql .= " ORDER BY is_read ASc";
+
+    try {
+        // Récupération de la liste des messages
+        $req = $co->prepare($sql);
+        $req->execute();
+        return $req->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage());
+        throw new Exception('Erreur lors de la récupération des messages');
+    }
 }
 
 /**
  * Récupère un message par son ID.
+ * 
+ * @param int $id ID du message
+ * @return array|null Données message ou null si non trouvé
+ * @throws Exception En cas d'erreur de base de données
  */
-function getMessageById(int $id): array
+function getMessageParId(int $id): array
 {
-    $pdo = connexionBaseDeDonnees();
-    $stmt = $pdo->prepare("
+    $co = connexionBaseDeDonnees();
+    $sql = "
         SELECT
           id,
           nom,
@@ -674,323 +947,548 @@ function getMessageById(int $id): array
           is_read,
           DATE_FORMAT(created_at, '%d-%m-%Y %H:%i') AS date_sent
         FROM messages
-        WHERE id = ?
-    ");
-    $stmt->execute([$id]);
-    return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        WHERE id = :id
+    ";
+
+    try {
+        // Récupère les données du message
+        $req = $co->prepare($sql);
+        $req->execute(array('id' => $id, ));
+        $result = $req->fetch(PDO::FETCH_ASSOC);
+
+        // Renvoi null si aucune ligne n'a été trouvée
+        return $result ? $result : null;
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage(), array('id' => $id, ));
+        throw new Exception("Erreur lors de la récupération du message");
+    }
 }
 
 /**
  * Marque un message comme lu.
+ * 
+ * @param int $id ID du message lu
+ * @return bool True si la mise à jour a réussi, false sinon
+ * @throws Exception En cas d'erreur de base de données
  */
-function markMessageRead(int $id): bool
+function setMessageLu(int $id): bool
 {
-    $pdo = connexionBaseDeDonnees();
-    $stmt = $pdo->prepare("UPDATE messages SET is_read = 1 WHERE id = ?");
-    return $stmt->execute([$id]);
+    $co = connexionBaseDeDonnees();
+
+    try {
+        // Récupère les données du cours
+        $req = $co->prepare("UPDATE messages SET is_read = 1 WHERE id = :id");
+        $req->execute(array('id' => $id, ));
+        return $req->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage(), array('id' => $id, ));
+        throw new Exception("Erreur lors de la récupération du maj statut du message");
+    }
 }
 
 /**
- * Supprime un message.
+ * Enregistre un nouveau message en base de données
+ *
+ * @param array $donnees Données du message (nom, email, contenu, sujet)
+ * @return bool True si enregistrement réussi, false sinon
+ * @throws Exception En cas d'erreur de base de données
  */
-function deleteMessage(int $id): bool
+function enregistrerMessage(array $donnees): bool
 {
-    $pdo = connexionBaseDeDonnees();
-    $stmt = $pdo->prepare("DELETE FROM messages WHERE id = ?");
-    return $stmt->execute([$id]);
+    $co = connexionBaseDeDonnees();
+    $sql = "
+        INSERT INTO messages (nom, email, contenu, sujet)
+        VALUES (:nom, :email, :contenu, :sujet)
+    ";
+    try {
+        // Insertion des données du message dans la base de données
+        $req = $co->prepare($sql);
+        return $req->execute([
+            ':nom' => $donnees['nom'],
+            ':email' => $donnees['email'],
+            ':contenu' => $donnees['message'],
+            ':sujet' => $donnees['sujet'] ?? null,
+        ]);
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage(), array(
+            "nom" => $donnees["nom"],
+            "email" => $donnees["email"],
+            "sujet" => $donnees["sujet"],
+        ));
+        throw new Exception("Erreur lors de l'enregistrement du message");
+    }
 }
 
 /**
- * Valide title/content pour un post.
+ * Supprime un message par id
+ * 
+ * @param int $id ID du message à supprimer
+ * @return bool True si suppression réussie, false sinon
+ * @throws Exception En cas d'erreur de base de données
  */
-function validatePostData(array $data, ?int $excludeId = null): array
+function supprimerMessage(int $id): bool
 {
-    $errors = [];
-    if (empty($data['titre'])) {
-        $errors[] = 'Le titre est requis.';
+    $co = connexionBaseDeDonnees();
+
+    try {
+        // Suppression de l'entraineur
+        $req = $co->prepare("DELETE FROM messages WHERE id = :id");
+        return $req->execute(array('id' => $id, ));
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage(), array('id' => $id, ));
+        throw new Exception("Erreur lors de la suppression du message");
     }
-    if (empty($data['contenu']) || mb_strlen($data['contenu']) < 20) {
-        $errors[] = 'Le contenu est trop court (min. 20 chars).';
+}
+
+//==================================================================================================
+//                                  ACTU / ARTICLE / POST / TAGS                
+//==================================================================================================
+
+/**
+ * Valide les données d'un post pour create ou update.
+ * 
+ * TODO: Ajouter la vérif auteur
+ * @param array $donnees Données à valider
+ * @return array Liste des erreurs (vide si OK)
+ */
+function validerDonneesPost(array $donnees): array
+{
+
+    $erreurs = array();
+
+    // Validation des champs requis
+    $champsRequis = ['titre', 'contenu', 'auteur'];
+    foreach ($champsRequis as $champ) {
+        if (empty($donnees[$champ])) {
+            array_push($erreurs, "Le champ '" . $champ . "' est requis.");
+        }
     }
-    if (empty($data['auteur']) || !is_numeric($data['auteur'])) {
-        $errors[] = 'Auteur invalide.';
+
+    if (!is_numeric($donnees['auteur'])) {
+        array_push($erreurs, "Auteur invalide");
     }
-    return $errors;
+
+    return $erreurs;
 }
 
 /** 
- * Retourne la liste des auteurs possibles (ex : tous les admins/parents).
+ * Récupère la liste des auteurs
+ * 
+ * @return array Liste des auteurs
+ * @throws Exception En cas d'erreur de base de données
  */
-function getAllAuthors(): array
+function getListeAuteurs(): array
 {
-    $pdo = connexionBaseDeDonnees();
-    return $pdo
-        ->query("SELECT id, CONCAT(prenom,' ',nom) AS nom_complet FROM users WHERE role='admin'")
-        ->fetchAll(PDO::FETCH_ASSOC);
+    $co = connexionBaseDeDonnees();
+    $sql = "
+    SELECT id, CONCAT(prenom,' ',nom) AS nom_complet 
+    FROM users 
+    WHERE role='admin'
+    ";
+
+    try {
+        // Récupération des auteurs
+        $req = $co->prepare($sql);
+        $req->execute();
+        return $req->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage());
+        throw new Exception('Erreur lors de la récupération des auteurs');
+    }
 }
 
 /**
- * Insère un nouvel article.
+ * Enregistre un nouveau cours en base de données
+ *
+ * @param array $donnees Données cours (nom, niveau, description, prix)
+ * @return int Si succès, retourne Id du post enregistré, -1 sinon
+ * @throws Exception En cas d'erreur de base de données
  */
-function enregistrerPost(array $d)
+function enregistrerPost(array $donnees): int
 {
-    $pdo = connexionBaseDeDonnees();
-    $stmt = $pdo->prepare("
-    INSERT INTO posts (titre, contenu, auteur)
-    VALUES (:titre,:contenu,:auteur)
-  ");
-    $stmt->execute([
-        'titre' => $d['titre'],
-        'contenu' => $d['contenu'],
-        'auteur' => $d['auteur'],
-    ]);
-    return (int) $pdo->lastInsertId();
+    $co = connexionBaseDeDonnees();
+    $sql = "
+    INSERT INTO posts (titre, contenu, auteur, photo)
+    VALUES (:titre,:contenu,:auteur, :photo)
+    ";
+
+    try {
+        // Insertion des données du post dans la base de données
+        $req = $co->prepare($sql);
+
+        // Insère les données, si succès alors retourne l'id du post sinon retourne -1
+        return $req->execute(array(
+            'titre' => $donnees['titre'],
+            'contenu' => $donnees['contenu'],
+            'auteur' => $donnees['auteur'],
+            'photo' => $donnees['photo'] ?? null,
+        )) ? $co->lastInsertId() : -1;
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage(), array("titre" => $donnees["titre"], "auteur" => $donnees["auteur"], ));
+        throw new Exception("Erreur lors de l'enregistrement du cours");
+    }
 }
 
 /**
- * Met à jour un article existant.
+ * Met à jour un post existant.
+ * 
+ * @param int $id ID du cours
+ * @param array $donnees Tableau associatif des champs à mettre à jour
+ * @return bool True si la mise à jour a réussi, false sinon
+ * @throws Exception En cas d'erreur de base de données
  */
-function modifierPost(int $id, array $d): bool
+function modifierPost(int $id, array $donnees): bool
 {
-    $pdo = connexionBaseDeDonnees();
-    $stmt = $pdo->prepare("
-    UPDATE posts
-    SET titre = :titre,
-        contenu = :contenu,
-        auteur = :auteur,
-        updated_at = NOW()
-    WHERE id = :id
-  ");
-    return $stmt->execute([
-        'titre' => $d['titre'],
-        'contenu' => $d['contenu'],
-        'auteur' => $d['auteur'],
-        'id' => $id,
-    ]);
+    // Vérifie si les champs requis sont présents, sinon renvoie exception
+    if (empty($donnees)) {
+        throw new InvalidArgumentException('Aucun champ à mettre à jour');
+    }
+
+    $co = connexionBaseDeDonnees();
+
+    try {
+        // Vérifier que le post existe
+        if (!getPostParId($id)) {
+            return false;
+        }
+
+        // Construction dynamique de la clause SET
+        $sets = array();
+        $params = array();
+        foreach ($donnees as $key => $val) {
+            $sets[] = $key . "=" . ":$key";
+            $params[$key] = $val;
+        }
+        $params['id'] = $id;
+
+        // Construction de la requête SQL avec implode  
+        $sql = "
+            UPDATE posts
+            SET " . implode(',', $sets) . ", updated_at = NOW()
+            WHERE id = :id
+        ";
+
+        $req = $co->prepare($sql);
+        return $req->execute($params);
+    } catch (PDOException $e) {
+        // Log l’erreur en prod
+        logErreur(__FUNCTION__, $e->getMessage(), array("id" => $id, ));
+        throw new Exception("Erreur lors de la mise à jour du post");
+    }
+
 }
 
 /**
- * Supprime un article.
+ * Supprime un post.
+ * 
+ * @param int $id ID du post à supprimer
+ * @return bool True si suppression réussie, false sinon
+ * @throws Exception En cas d'erreur de base de données
  */
-function deletePost(int $id)
+function supprimerPost(int $id): bool
 {
-    $pdo = connexionBaseDeDonnees();
-    $pdo->prepare("DELETE FROM post_tag WHERE post_id = ?")->execute([$id]);
-    $pdo->prepare("DELETE FROM posts     WHERE id       = ?")->execute([$id]);
+    $co = connexionBaseDeDonnees();
+
+    try {
+        // Suppression de les tags liés au post
+        $req_tags = $co->prepare("DELETE FROM post_tag WHERE post_id = :id");
+        $req_tags->execute(array('id' => $id, ));
+
+        $req_post = $co->prepare("DELETE FROM posts WHERE id = :id");
+        $req_post->execute(array('id' => $id, ));
+
+        return true;
+    } catch (PDOException $e) {
+        // Si la transaction de suppression est en cours, donc en échec, alors on annule la transaction (rollback)
+        if ($co->inTransaction()) {
+            $co->rollBack();
+        }
+        logErreur(__FUNCTION__, $e->getMessage(), array('id' => $id, ));
+        throw new Exception("Erreur lors de la suppression du post et des tags");
+    }
 }
 
 /**
- * Récupère un article.
+ * Récupère un post par son ID
+ * 
+ * @param int $id ID du post
+ * @return array|null Données post ou null si non trouvé
+ * @throws Exception En cas d'erreur de base de données
  */
-function getPostById(int $id): array
+function getPostParId(int $id): array
 {
-    $pdo = connexionBaseDeDonnees();
-    $stmt = $pdo->prepare("
+    $co = connexionBaseDeDonnees();
+    $sql = "
     SELECT
       p.id,
       p.titre,
       p.contenu,
+      p.photo,
       p.auteur,
       CONCAT(u.prenom,' ',u.nom) AS auteur_nom,
       DATE_FORMAT(p.created_at,'%d-%m-%Y') AS date_publication
     FROM posts AS p
     JOIN users AS u ON u.id = p.auteur
-    WHERE p.id = ?
-  ");
-    $stmt->execute([$id]);
-    return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    WHERE p.id = :id
+    ";
+
+    try {
+        // Récupère les données du post
+        $req = $co->prepare($sql);
+        $req->execute(array('id' => $id, ));
+        $result = $req->fetch(PDO::FETCH_ASSOC);
+
+        // Renvoi null si aucune ligne n'a été trouvée
+        return $result ? $result : null;
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage(), array('id' => $id, ));
+        throw new Exception("Erreur lors de la récupération du post");
+    }
 }
 
 /**
  * Récupère les posts, avec extrait, auteur, date, et liste de tags.
  * Peut filtrer par tag et trier par date.
  *
- * @param int         $excerptLength  longueur de l’extrait
- * @param string|null $filterTag      nom du tag à filtrer (ou null pour aucun filtre)
- * @param string      $sort           'asc' ou 'desc' (par date de création)
- * @return array
+ * @param int $excerptLength  longueur de l’extrait
+ * @param string|null $filterTag nom du tag à filtrer (ou null pour aucun filtre)
+ * @param string $sort 'asc' ou 'desc' (par date de création)
+ * @return array Tableau de posts (id, titre, photo, excerpt, auteur_nom, created_at, updated_at, tags)
+ * @throws Exception En cas d'erreur de base de données
  */
-function getAllPosts(int $excerptLength = 200, ?string $filterTag = null, string $sort = 'desc'): array
+function getListePosts(int $excerptLength = 200, ?string $filterTag = null, string $sort = 'desc'): array
 {
-    $pdo = connexionBaseDeDonnees();
+    $co = connexionBaseDeDonnees();
     $sort = strtolower($sort) === 'asc' ? 'ASC' : 'DESC';
+    $params = array("len" => $excerptLength, );
+    $sql = "
+    SELECT
+        p.id,
+        p.titre,
+        p.photo,
+        LEFT(p.contenu, :len) AS excerpt,
+        CONCAT(u.prenom,' ',u.nom) AS auteur_nom,
+        DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
+        DATE_FORMAT(p.updated_at,'%d-%m-%Y') AS updated_at,
+        -- concaténation des tags
+        (SELECT GROUP_CONCAT(t2.name SEPARATOR ', ')
+        FROM post_tag pt2
+        JOIN tags t2 ON t2.id = pt2.tag_id
+        WHERE pt2.post_id = p.id
+        ) AS tags 
+    FROM posts p
+    JOIN users u ON u.id = p.auteur
+    ";
 
     if ($filterTag) {
         // filtre par tag
-        $sql = "
-            SELECT
-              p.id,
-              p.titre,
-              LEFT(p.contenu, :len) AS excerpt,
-              CONCAT(u.prenom,' ',u.nom) AS auteur_nom,
-              DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
-              DATE_FORMAT(p.updated_at,'%d-%m-%Y') AS updated_at,
-              -- concaténation des tags
-              (SELECT GROUP_CONCAT(t2.name SEPARATOR ', ')
-               FROM post_tag pt2
-               JOIN tags t2 ON t2.id = pt2.tag_id
-               WHERE pt2.post_id = p.id
-              ) AS tags
-            FROM posts p
-            JOIN post_tag pt ON pt.post_id = p.id
-            JOIN tags t ON t.id = pt.tag_id
-            JOIN users u ON u.id = p.auteur
-            WHERE t.name = :tag
-            GROUP BY p.id
-            ORDER BY p.created_at $sort
+        $sql .= "
+        JOIN post_tag pt ON pt.post_id = p.id
+        JOIN tags t ON t.id = pt.tag_id
+        WHERE t.name = :tag
         ";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['len' => $excerptLength, 'tag' => $filterTag]);
-    } else {
-        // sans filtre
-        $sql = "
-            SELECT
-              p.id,
-              p.titre,
-              LEFT(p.contenu, :len) AS excerpt,
-              CONCAT(u.prenom,' ',u.nom) AS auteur_nom,
-              DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
-              DATE_FORMAT(p.updated_at,'%d-%m-%Y') AS updated_at,
-              (SELECT GROUP_CONCAT(t2.name SEPARATOR ', ')
-               FROM post_tag pt2
-               JOIN tags t2 ON t2.id = pt2.tag_id
-               WHERE pt2.post_id = p.id
-              ) AS tags
-            FROM posts p
-            JOIN users u ON u.id = p.auteur
-            GROUP BY p.id
-            ORDER BY p.created_at $sort
-        ";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['len' => $excerptLength]);
+        $params['tag'] = $filterTag;
     }
 
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $sql .= " GROUP BY p.id ORDER BY p.created_at " . $sort;
+
+    try {
+        // Récupération de la liste des cours
+        $req = $co->prepare($sql);
+        $req->execute($params);
+        return $req->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage());
+        throw new Exception('Erreur lors de la récupération des posts');
+    }
+
 }
 
 /**
  * Synchronise la liste des tags pour un post donné.
  *
- * @param int    $postId   ID du post
- * @param string $tagsCsv  Chaîne CSV des noms de tags
+ * @param int $postId ID du post
+ * @param string $tagsCsv Chaîne CSV des noms de tags
  */
 function syncPostTags(int $postId, string $tagsCsv): void
 {
-    $pdo = connexionBaseDeDonnees();
-    // 1) Séparer, normaliser et dédupliquer
+    $co = connexionBaseDeDonnees();
+
+    // Séparer, normaliser et dédupliquer
     $names = array_filter(array_map('trim', explode(',', $tagsCsv)));
     $names = array_unique(array_map('mb_strtolower', $names));
 
     if (count($names) === 0) {
         // supprimer toutes les liaisons existantes
-        $pdo->prepare("DELETE FROM post_tag WHERE post_id = ?")
+        $co->prepare("DELETE FROM post_tag WHERE post_id = ?")
             ->execute([$postId]);
         return;
     }
 
     // 2) Insérer les nouveaux tags (IGNORE les doublons)
-    $iStmt = $pdo->prepare("INSERT IGNORE INTO tags (name) VALUES (:name)");
+    $iStmt = $co->prepare("INSERT IGNORE INTO tags (name) VALUES (:name)");
     foreach ($names as $n) {
         $iStmt->execute(['name' => $n]);
     }
 
     // 3) Récupérer leurs IDs
     $placeholders = implode(',', array_fill(0, count($names), '?'));
-    $sStmt = $pdo->prepare("SELECT id FROM tags WHERE name IN ($placeholders)");
+    $sStmt = $co->prepare("SELECT id FROM tags WHERE name IN ($placeholders)");
     $sStmt->execute($names);
     $tagIds = $sStmt->fetchAll(PDO::FETCH_COLUMN);
 
     // 4) Réinitialiser les liaisons, puis recréer
-    $pdo->prepare("DELETE FROM post_tag WHERE post_id = ?")
+    $co->prepare("DELETE FROM post_tag WHERE post_id = ?")
         ->execute([$postId]);
 
-    $ptStmt = $pdo->prepare("INSERT INTO post_tag (post_id, tag_id) VALUES (?, ?)");
+    $ptStmt = $co->prepare("INSERT INTO post_tag (post_id, tag_id) VALUES (?, ?)");
     foreach ($tagIds as $tid) {
         $ptStmt->execute([$postId, $tid]);
     }
 }
 
 /**
- * Retourne la liste des tags (leurs noms) associés à un post.
+ * Retourne la liste des tags associés à un post.
+ * 
+ * @param int $id ID du post
+ * @return array Liste des cours
+ * @throws Exception En cas d'erreur de base de données
  */
-function getTagsForPost(int $postId): array
+function getTagsPourPost(int $id): array
 {
-    $pdo = connexionBaseDeDonnees();
-    return $pdo
-        ->prepare("SELECT t.name FROM tags t JOIN post_tag pt ON pt.tag_id=t.id WHERE pt.post_id=?")
-        ->execute([$postId])
-        ? $pdo->query("SELECT t.name FROM tags t JOIN post_tag pt ON pt.tag_id=t.id WHERE pt.post_id=$postId")->fetchAll(PDO::FETCH_COLUMN)
-        : [];
+    $co = connexionBaseDeDonnees();
+    $sql = "
+    SELECT
+        t.name
+    FROM tags t
+    JOIN post_tag pt ON pt.tag_id = t.id
+    WHERE pt.post_id = :id
+    ";
+
+    try {
+        // Récupération de la liste des cours
+        $req = $co->prepare($sql);
+        $req->execute(array('id' => $id, ));
+        return $req->fetchAll(PDO::FETCH_COLUMN);
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage(), array('id' => $id, ));
+        throw new Exception("Erreur lors de la récupération des tags pour le post");
+    }
 }
 
 /**
  * Récupère tous les tags existants, ordonnés alphabetiquement.
  *
- * @return array  Chaque élément : ['id' => int, 'name' => string]
+ * @return array Liste des tags
+ * @throws Exception En cas d'erreur de base de données
  */
-function getAllTags(): array
+function getListeTags()
 {
-    $pdo = connexionBaseDeDonnees();
-    $stmt = $pdo->query("SELECT id, name FROM tags ORDER BY name");
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $co = connexionBaseDeDonnees();
+    $sql = "SELECT id, name FROM tags ORDER BY name";
+    try {
+        // Récupération de la liste des tags
+        $req = $co->prepare($sql);
+        $req->execute();
+        return $req->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logErreur(__FUNCTION__, $e->getMessage());
+        throw new Exception('Erreur lors de la récupération des tags');
+    }
+}
+
+//==================================================================================================
+//                                        MESSAGES FLASHS                 
+//==================================================================================================
+
+/**
+ * Affiche les messages flash et les supprime de la session
+ * 
+ * @return void
+ */
+function displayFlash(): void
+{
+    if (empty($_SESSION['flash'])) {
+        return;
+    }
+
+    // Classes Tailwind pour les types de messages
+    $typesClasses = [
+        'success' => 'bg-green-100 text-green-800 border-green-200',
+        'error' => 'bg-red-100 text-red-800 border-red-200',
+        'warning' => 'bg-yellow-100 text-yellow-800 border-yellow-200',
+        'info' => 'bg-blue-100 text-blue-800 border-blue-200',
+    ];
+
+    // Boucle d'affichage des messages flash
+    foreach ($_SESSION['flash'] as $type => $messages) {
+
+        // Raccourci PHP permettant la meme opération :   $classes = $$typesClasses[$type] ?? $typesClasses['info'];
+        $classes = isset($typesClasses[$type]) && !empty($typesClasses[$type]) ? $typesClasses[$type] : $typesClasses['info'];
+
+        echo '<div class="mb-4 p-4 border rounded ' . $classes . '">';
+        echo '<ul class="list-disc pl-5">';
+
+        foreach ($messages as $msg) {
+            echo '<li>' . $msg . '</li>';
+        }
+
+        echo '</ul></div>';
+    }
+
+    unset($_SESSION['flash']);
 }
 
 /**
- * Insère un message de contact dans la table `messages`.
- *
- * @param array $data Doit contenir 'nom', 'email', 'contenu', 'sujet'
- * @return bool true si OK, false sinon
+ * Définit un flash message (success|error|warning|info).
+ * 
+ * @param string $type Type du message (success, error, warning, info)
+ * @param string $msg Message à afficher
+ * @return void
  */
-function enregistrerMessage(array $data): bool
+function setFlash(string $type, string $msg): void
 {
-    $pdo = connexionBaseDeDonnees();
-    $sql = "
-        INSERT INTO messages (nom, email, contenu, sujet)
-        VALUES (:nom, :email, :contenu, :sujet)
-    ";
-    $stmt = $pdo->prepare($sql);
-    try {
-        return $stmt->execute([
-            ':nom' => $data['nom'],
-            ':email' => $data['email'],
-            ':contenu' => $data['message'],
-            ':sujet' => $data['sujet'] ?? null,
-        ]);
-    } catch (PDOException $e) {
-        error_log(
-            date('Y-m-d H:i:s') . " | enregistrerMessage() PDO erreur: {$e->getMessage()}\n",
-            3,
-            __DIR__ . '/../../logs/bdd_erreurs.log'
-        );
-        return false;
+    $typesValides = ['success', 'error', 'warning', 'info'];
+
+    // Si le type de message n'est pas valide, on lève une exception
+    if (!in_array($type, $typesValides, true)) {
+        throw new InvalidArgumentException("Type '" . $type . "' invalide");
+    }
+
+    $_SESSION['flash'][$type][] = htmlspecialchars($msg, ENT_QUOTES);
+}
+
+//==================================================================================================
+//                                           AUTRES                 
+//==================================================================================================
+
+/**
+ * Redirige vers la page de connexion si non connecté
+ * 
+ * @return void
+ */
+function requireConnexion(): void
+{
+    if (!isset($_SESSION['user'])) {
+        header('Location: login.php');
+        exit;
     }
 }
 
 /**
- * Renvoie la liste des témoignages à afficher.
- * 
- * @return array
+ * Nettoie un tableau de données en supprimant les espaces et balises HTML
+ *
+ * @param array $data Tableau associatif des champs à nettoyer
+ * @return array Tableau nettoyé
  */
-function getTestimonials(): array
+function nettoyerDonnees(array $data): array
 {
-    // À adapter : récupère depuis la BDD ou un fichier de config
-    return [
-        [
-            'quote' => 'Le club est exceptionnel, les coachs sont très professionnels.',
-            'name' => 'Sophie Dubois',
-            'role' => 'Mère de famille',
-        ],
-        [
-            'quote' => 'Je progresse rapidement grâce aux entraînements adaptés.',
-            'name' => 'Antoine Martin',
-            'role' => 'Étudiant',
-        ],
-        [
-            'quote' => 'Ambiance conviviale et sportive, je recommande à tous.',
-            'name' => 'Julien Lefèvre',
-            'role' => 'Salarié',
-        ],
-    ];
+    // Utilisation de array_map pour appliquer une fonction sur chaque élément d'un tableau
+    // Utilisation d'une 'arrow function' permettant d'alléger la syntaxte du callback pour le mapping
+
+    return array_map(function ($value) {
+        return is_string($value) ? strip_tags(trim($value)) : $value;
+    }, $data);
 }
 
 /**
@@ -1013,92 +1511,31 @@ function paginateArray(array $all, string $param, int $perPage = 10): array
     return compact('pageNum', 'perPage', 'total', 'totalPages', 'offset', 'slice');
 }
 
-/** 
- * Retourne la liste des auteurs possibles (ex : tous les admins/parents).
- */
-function getAllUsers(): array
-{
-    $pdo = connexionBaseDeDonnees();
-    $sql = "
-    SELECT 
-    id, 
-    CONCAT(prenom,' ',nom) AS nom_complet, 
-    email, 
-    role,
-    DATE_FORMAT(created_at,'%d-%m-%Y') AS date_creation,
-    DATE_FORMAT(updated_at,'%d-%m-%Y') AS date_modification
-    FROM users 
-    ORDER BY id
-    ";
-    return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-}
-
-/** 
- * Retourne la liste des auteurs possibles (ex : tous les admins/parents).
- */
-function getAllClasses(): array
-{
-    $pdo = connexionBaseDeDonnees();
-    $sql = "
-        SELECT
-          c.id,
-          c.nom,
-          c.niveau,
-          CONCAT(c.prix,' €') AS prix_aff,
-          c.prix,
-          LEFT(c.description,100) AS extrait_desc,
-          CONCAT(t.prenom,' ',t.nom) AS entraineur,
-          DATE_FORMAT(c.date_creation,'%d-%m-%Y') AS date_creation,
-          DATE_FORMAT(c.updated_at,'%d-%m-%Y') AS date_modification
-        FROM classes c
-        LEFT JOIN team t ON t.id = c.team_id
-        ORDER BY c.nom
-    ";
-    return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-}
-
-/** 
- * Retourne la liste des auteurs possibles (ex : tous les admins/parents).
- */
-function getAllTrainers(): array
-{
-    $pdo = connexionBaseDeDonnees();
-    $sql = "
-        SELECT id,
-            CONCAT(prenom,' ',nom) AS nom_complet,
-            LEFT(bio,100) AS extrait_bio,
-            bio,
-            role,
-            DATE_FORMAT(created_at,'%d-%m-%Y') AS date_creation,
-            DATE_FORMAT(updated_at,'%d-%m-%Y') AS date_modification,
-            photo
-        FROM team
-        ORDER BY id
-    ";
-    return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
-}
-
 /**
- * Récupère le planning des cours sous forme de liste de lignes :
- * [
- *   ['jour'=>'Lundi', 'heure_debut'=>18, 'heure_fin'=>19, 'nom'=>'Adultes', 'niveau'=>'Avancé'],
- *   …
- * ]
- * @return array
+ * Renvoie la liste des témoignages.
+ * Pour l'instant, cette fonction renvoi une liste statique. Voir la documentation pour plus d'informations.
+ *  
+ * @return array Liste des témoignages
  */
-function getCourseSchedule(): array
+function getTemoignages(): array
 {
-    $co = connexionBaseDeDonnees();
-    $sql = "
-    SELECT
-      s.jour AS jour,
-      s.heure_debut,
-      s.heure_fin,
-      c.nom,
-      c.niveau
-    FROM schedules AS s
-    INNER JOIN classes AS c ON s.class_id = c.id
-    ORDER BY s.jour 
-    ";
-    return $co->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    // TODO: Ajouter table et requête pour récupérer les avis/témoignages
+
+    return array(
+        [
+            'quote' => 'Le club est exceptionnel, les coachs sont très professionnels.',
+            'name' => 'Sophie Dubois',
+            'role' => 'Mère de famille',
+        ],
+        [
+            'quote' => 'Je progresse rapidement grâce aux entraînements adaptés.',
+            'name' => 'Antoine Martin',
+            'role' => 'Étudiant',
+        ],
+        [
+            'quote' => 'Ambiance conviviale et sportive, je recommande à tous.',
+            'name' => 'Julien Lefèvre',
+            'role' => 'Salarié',
+        ],
+    );
 }

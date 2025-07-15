@@ -4,17 +4,17 @@ $action = $_POST['action'] ?? '';
 $id = (int) ($_POST['id'] ?? 0);
 
 if ($action === 'mark_read' && $id > 0) {
-    markMessageRead($id);
+    setMessageLu($id);
     setFlash('success', 'Message marqué comme lu.');
 }
 
 if ($action === 'destroy' && $id > 0) {
-    deleteMessage($id);
+    supprimerMessage($id);
     setFlash('success', 'Message supprimé.');
 }
 
 // Pagination
-$all = getAllMessages();
+$all = getListeMessages();
 
 $baseUrl = "profile.php?page=" . $pageActuelle;
 // chargement du tableau
@@ -50,13 +50,13 @@ $actions = [
 // Gestion de la vue détaillée
 $viewId = isset($_GET['view']) ? (int) $_GET['view'] : 0;
 if ($viewId > 0) {
-    $msg = getMessageById($viewId);
+    $msg = getMessageParId($viewId);
     if (!$msg) {
         setFlash('error', 'Message introuvable.');
     }
     // Si on clique pour lire, on le marque lu
     if (!$msg['is_read']) {
-        markMessageRead($viewId);
+        setMessageLu($viewId);
         $msg['is_read'] = 1;
     }
     ?>

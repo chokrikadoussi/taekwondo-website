@@ -10,7 +10,6 @@ $pageTitle = 'Erreur base de données';
 </head>
 
 <body class="min-h-screen flex flex-col bg-gray-50 text-gray-800">
-    <?php include __DIR__ . '/includes/header.php'; ?>
 
     <main class="flex-grow container mx-auto px-4 py-16 text-center">
         <h1 class="text-3xl font-bold mb-4">Oups !</h1>
@@ -19,8 +18,6 @@ $pageTitle = 'Erreur base de données';
             Retour à l’accueil
         </a>
     </main>
-
-    <?php include __DIR__ . '/includes/footer.php'; ?>
 </body>
 
 </html>
