@@ -109,25 +109,6 @@ $posts = array_slice(getListePosts(150), 0, 3);
             </section>
         </div>
 
-
-        <!-- Questionnaire Section -->
-        <section class="bg-gray-50 py-8">
-            <div class="container mx-auto px-4 text-center">
-                <h2 class="text-2xl font-semibold mb-4">Quel cours est fait pour vous ?</h2>
-                <p class="text-gray-600 mb-6">
-                    Répondez à ce questionnaire pour découvrir lequel de nos cours est fait pour vous !
-                </p>
-                <form action="index.php" method="post" class="inline-block">
-                    <button type="submit" name="submit-qst-cours"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded transition">
-                        Trouver mon cours
-                    </button>
-                </form>
-            </div>
-        </section>
-
-
-
         <!-- News Section -->
         <section class="py-12 bg-gray-100">
             <div class="container mx-auto px-4">
