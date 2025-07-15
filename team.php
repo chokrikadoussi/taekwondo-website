@@ -15,48 +15,69 @@ $trainers = getAllTrainers();
     <?php include __DIR__ . '/includes/head.php'; ?>
 </head>
 
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col bg-gray-50">
     <?php include __DIR__ . '/includes/header.php'; ?>
 
     <main class="flex-grow container mx-auto px-4 py-12">
-        <h1 class="text-3xl font-semibold mb-8 text-center">Notre équipe</h1>
-        <div></div>
+        <h1 class="text-3xl font-semibold mb-8 text-center text-gray-900">Notre équipe</h1>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             <?php foreach ($trainers as $t): ?>
-                <article class="bg-white rounded-lg shadow p-6 flex flex-col">
-                    <!-- Photo si tu en as une dans la DB, sinon avatar générique -->
-                    <?php if (!empty($t['photo'] ?? '')): ?>
-                        <img src="img/<?= htmlspecialchars($t['photo'], ENT_QUOTES) ?>"
-                            alt="Photo de <?= htmlspecialchars($t['nom_complet'], ENT_QUOTES) ?>"
-                            class="h-128 w-full object-cover rounded-md mb-4">
-                    <?php else: ?>
-                        <div class="h-128 w-full bg-gray-100 rounded-md mb-4 flex items-center justify-center text-gray-400">
-                            <i class="fas fa-user-circle fa-5x"></i>
-                        </div>
-                    <?php endif; ?>
+                <div class="group perspective">
+                    <div class="card-inner relative w-full transition-transform duration-700 transform-style-preserve-3d">
 
-                    <h2 class="text-xl font-bold mb-1"><?= htmlspecialchars($t['nom_complet'], ENT_QUOTES) ?></h2>
-                    <p class="text-sm text-indigo-600 mb-3 uppercase tracking-wide"><?= htmlspecialchars($t['role'], ENT_QUOTES) ?></p>
+                        <!-- Face avant -->
+                        <article class="card-front bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col h-full">
+                            <div class="relative h-128 bg-gray-100">
+                                <?php if (!empty($t['photo'])): ?>
+                                    <img src="img/<?= htmlspecialchars($t['photo'], ENT_QUOTES) ?>" alt=""
+                                        class="object-cover w-full h-full">
+                                <?php else: ?>
+                                    <div class="w-full h-full flex items-center justify-center text-gray-400">
+                                        <i class="fas fa-user-circle fa-6x"></i>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="p-6 flex flex-col flex-grow">
+                                <h2 class="text-xl font-bold mb-2"><?= htmlspecialchars($t['nom_complet'], ENT_QUOTES) ?>
+                                </h2>
+                                <p class="text-gray-700 flex-grow mb-4">
+                                    <?php
+                                    $bio = strip_tags($t['bio']);
+                                    echo mb_strlen($bio) > 100
+                                        ? htmlspecialchars(mb_substr($bio, 0, 100), ENT_QUOTES) . '…'
+                                        : htmlspecialchars($bio, ENT_QUOTES);
+                                    ?>
+                                </p>
+                                <button
+                                    class="btn-flip mt-auto bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition cursor-pointer">
+                                    En savoir plus
+                                </button>
+                            </div>
+                        </article>
 
-                    <p class="text-gray-700 flex-grow">
-                        <?php
-                        $bio = strip_tags($t['bio']);
-                        echo mb_strlen($bio) > 120
-                            ? htmlspecialchars(mb_substr($bio, 0, 120), ENT_QUOTES) . '…'
-                            : htmlspecialchars($bio, ENT_QUOTES);
-                        ?>
-                    </p>
+                        <!-- Face arrière -->
+                        <article
+                            class="card-back absolute inset-0 bg-white rounded-2xl shadow-lg p-6 backface-hidden transform rotate-y-180">
+                            <h2 class="text-xl font-bold mb-4"><?= htmlspecialchars($t['nom_complet'], ENT_QUOTES) ?></h2>
+                            <p class="text-gray-800 leading-relaxed mb-6">
+                                <?= nl2br(htmlspecialchars($t['bio'], ENT_QUOTES)) ?>
+                            </p>
+                            <button
+                                class="btn-unflip bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition cursor-pointer">
+                                Retour
+                            </button>
+                        </article>
 
-                    <a href="team.php#trainer-<?= $t['id'] ?>"
-                        class="mt-4 inline-block self-start bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition">
-                        En savoir plus
-                    </a>
-                </article>
+                    </div>
+                </div>
             <?php endforeach; ?>
+
         </div>
     </main>
 
     <?php include __DIR__ . '/includes/footer.php'; ?>
+    <script src="js/main.js"></script>
 </body>
 
 </html>
