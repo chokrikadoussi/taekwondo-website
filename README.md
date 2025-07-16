@@ -9,17 +9,17 @@
 #### **Page 1 : Informations Générales**
 
 **1.1. URL du Site Web**
-* **URL du site en ligne :** [LAISSER UN ESPACE POUR L'URL DU SITE]
+* **URL du site en ligne :** https://www.taekwondo-pise.worldlite.fr/
 
 **1.2. Accès aux Comptes de Test**
 
 * **Compte Utilisateur (Membre) :**
-    * **Login :** [LAISSER UN ESPACE POUR LE LOGIN UTILISATEUR]
-    * **Mot de passe :** [LAISSER UN ESPACE POUR LE MOT DE PASSE UTILISATEUR]
+    * **Login :** 
+    * **Mot de passe :** 
 
 * **Compte Administrateur :**
-    * **Login :** [LAISSER UN ESPACE POUR LE LOGIN ADMINISTRATEUR]
-    * **Mot de passe :** [LAISSER UN ESPACE POUR LE MOT DE PASSE ADMINISTRATEUR]
+    * **Login :** 
+    * **Mot de passe :** 
 
 ---
 
