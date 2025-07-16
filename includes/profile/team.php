@@ -149,9 +149,8 @@ $actions = [
             </div>
 
             <div>
-                <label for="photo" class="block text-sm font-medium text-slate-700">URL de la Photo (ex:
-                    `img/nom.jpg`)</label>
-                <input type="text" name="photo" id="photo"
+                <label for="photo" class="block text-sm font-medium text-slate-700">URL de la Photo</label>
+                <input type="text" name="photo" id="photo" placeholder="img/nom-image.jpg"
                     value="<?= htmlspecialchars($record['photo'] ?? '', ENT_QUOTES) ?>"
                     class="mt-1 w-full border border-slate-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
