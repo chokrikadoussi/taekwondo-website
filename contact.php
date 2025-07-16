@@ -1,57 +1,69 @@
 <?php
-// public/contact.php
+/**
+ * @author Chokri Kadoussi
+ * @author Anssoumane Sissokho
+ * @date 2025-07-16
+ * @version 1.0.0
+ * 
+ * Présentation du fichier : Page Contact permettant aux utilisateurs d'envoyer un message aux admins stocké en bdd
+ * 
+ * 
+ */
 session_start();
 $pageTitle = 'Contact';
 $pageActuelle = 'contact';
 require __DIR__ . '/fonction/fonctions.php';
 
-// 1) Initialisation
-$errors = [];
-$data = ['nom' => '', 'email' => '', 'sujet' => '', 'message' => ''];
+// Initialisation pour s'assurer qu'ils existent pour fournir des valeurs par défaut pour l'affichage initial du formulaire.
+$errors = array();
+$data = array('nom' => '', 'email' => '', 'sujet' => '', 'message' => '', );
 
-// 2) POST handler
+// Gestion des actions POST lorsqu'un formulaire en envoyé
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // 2.1) Nettoyage
-    $data = nettoyerDonnees([
+    // Nettoyage
+    $data = nettoyerDonnees(array(
         'nom' => $_POST['nom'] ?? '',
         'email' => $_POST['email'] ?? '',
         'sujet' => $_POST['sujet'] ?? '',
         'message' => $_POST['message'] ?? '',
-    ]);
+    ));
 
-    // 2.2) Validation
-    if ($data['nom'] === '') {
-        $errors[] = 'Le nom est requis.';
-    }
-    if ($data['email'] === '' || !estValideMail($data['email'])) {
-        $errors[] = 'Adresse e-mail invalide.';
-    }
-    if (trim($data['message']) === '') {
-        $errors[] = 'Le message ne peut pas être vide.';
-    }
+    // Validation via la fonction dédiée validerDonneesMessage()
+    $errors = validerDonneesMessage($data);
 
     // 2.3) Insertion et redirection en cas de succès
     if (empty($errors)) {
-        if (enregistrerMessage($data)) {
-            setFlash('success', 'Merci ! Votre message a bien été envoyé.');
-            header('Location: contact.php');
-            exit;
-        } else {
-            $errors[] = 'Une erreur est survenue. Veuillez réessayer plus tard.';
+        try {
+            $enregistrer = enregistrerMessage($data);
+            if ($enregistrer) {
+                setFlash('success', 'Merci ! Votre message a bien été envoyé.');
+                header('Location: contact.php');
+                exit;
+            } else {
+                // Si enregistrerMessage retourne false (mais n'a pas levé d'exception)
+                setFlash('error', "Échec de l'envoi du message. Veuillez réessayer.");
+            }
+        } catch (Exception $e) {
+            // Capture les exceptions levées par enregistrerMessage (ex: erreur PDO)
+            setFlash('error', "Une erreur est survenue lors de l'envoi. Veuillez réessayer plus tard.");
+            // Enregistrement de l'erreur pour le débogage (déjà géré par logErreur dans fonctions.php)
         }
     }
 
-    // Stockage des erreurs et données pour le PRG
+    // Stockage des erreurs et données pour le PRG (Post/Redirect/Get)
+    // Ceci s'exécute soit si la validation échoue, soit si l'enregistrement échoue après validation.
     $_SESSION['form_errors'] = $errors;
     $_SESSION['form_data'] = $data;
     header('Location: contact.php');
     exit;
 }
 
-// 3) Lecture des flashes / anciens inputs
+// Lecture des flashes / anciens inputs après redirection
+// Ces variables sont utilisées pour pré-remplir le formulaire et afficher les erreurs de validation.
 $errors = $_SESSION['form_errors'] ?? [];
-$data = $_SESSION['form_data'] ?? $data;
-unset($_SESSION['form_errors'], $_SESSION['form_data']);
+$data = $_SESSION['form_data'] ?? $data; // Utilise les données de la session ou les valeurs par défaut
+unset($_SESSION['form_errors'], $_SESSION['form_data']); // Nettoie la session après lecture
+
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -121,8 +133,15 @@ unset($_SESSION['form_errors'], $_SESSION['form_data']);
 
             <div class="order-1 lg:order-2 bg-white p-8 rounded-lg shadow-lg flex flex-col">
                 <?php displayFlash(); ?>
-                <?php if (!empty($errors)): ?>
-                <?php endif; ?>
+                <?php if (!empty($errors)) { ?>
+                    <div class="mb-6 p-4 bg-red-100 text-red-800 rounded">
+                        <ul class="list-disc pl-5 space-y-1">
+                            <?php foreach ($errors as $e) { ?>
+                                <li><?= htmlspecialchars($e, ENT_QUOTES) ?></li>
+                            <?php } ?>
+                        </ul>
+                    </div>
+                <?php } ?>
 
                 <form method="post" class="space-y-6 flex flex-col h-full">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">

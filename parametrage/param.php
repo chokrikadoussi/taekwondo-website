@@ -1,4 +1,13 @@
 <?php
+/**
+ * @author Chokri Kadoussi
+ * @author Anssoumane Sissokho
+ * @date 2025-07-16
+ * @version 1.0.0
+ * 
+ * Présentation du fichier : Regroupement de toutes les constantes du site web (bdd, log...)
+ *  
+ */
 
 // Constantes de la base de données
 define('DB_HOST', 'localhost');

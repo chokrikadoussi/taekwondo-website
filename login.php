@@ -1,38 +1,62 @@
 <?php
+/**
+ * @author Chokri Kadoussi
+ * @author Anssoumane Sissokho
+ * @date 2025-07-16
+ * @version 1.0.0
+ * 
+ * Présentation du fichier :    
+ * 
+ * TODO: remplir la description du fichier
+ * 
+ */
 session_start();
 $pageTitle = 'Connexion';
 $pageActuelle = 'login';
 require __DIR__ . '/fonction/fonctions.php';
 
-$errors = [];
+// Initialisation des variables pour le formulaire et les erreurs
+// Ces variables seront utilisées pour l'affichage initial du formulaire
+// ou après une tentative de connexion (sur la même requête).
+$errors = array();
 $email = '';
 
+// Gestion de la requête POST (soumission du formulaire)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $mdp = $_POST['motdepasse'] ?? '';
 
+    // Validation initiale des champs | inutile d'externaliser ce bloc dans une fonction
     if ($email === '' || !estValideMail($email)) {
-        $errors[] = 'Adresse e-mail invalide.';
+        array_push($errors, 'Adresse e-mail invalide.');
     }
     if ($mdp === '') {
-        $errors[] = 'Veuillez saisir un mot de passe.';
+        array_push($errors, 'Veuillez saisir un mot de passe.');
     }
 
-    if (empty($errors) && !authentification($email, $mdp)) {
-        $errors[] = 'Identifiants incorrects.';
-    }
-
+    // Si aucune erreur alors tenter l'authentification et la connexion
     if (empty($errors)) {
-        // Récupère les infos de l’utilisateur
-        $user = connexionUtilisateur($email);
-        if ($user) {
-            // On stocke l’utilisateur en session
-            $_SESSION['user'] = $user;
-            header("Location: profile.php");
-            exit;
-        } else {
-            // Cas improbable si auth a réussi
-            $errors[] = 'Impossible de charger votre profil.';
+        try {
+            // Tentative d'authentification
+            if (!authentification($email, $mdp)) {
+                array_push($errors, 'Identifiants incorrects.');
+            } else {
+                // Si l'authentification réussit, tenter de charger le profil utilisateur
+                $user = connexionUtilisateur($email);
+                if ($user) {
+                    // Authentification et chargement du profil réussis : stocker en session et rediriger
+                    $_SESSION['user'] = $user;
+                    header("Location: profile.php");
+                    exit;
+                } else {
+                    // Cas improbable : authentification OK mais profil introuvable
+                    array_push($errors, 'Impossible de charger votre profil.');
+                }
+            }
+        } catch (Exception $e) {
+            // Gérer les erreurs de base de données ou autres exceptions imprévues
+            logErreur("Page login.php ", $e->getMessage(), array('email' => $email, ));
+            array_push($errors, 'Une erreur est survenue lors de la connexion. Veuillez réessayer plus tard.');
         }
     }
 }
@@ -42,30 +66,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <head>
     <?php include __DIR__ . '/includes/head.php'; ?>
-    <style>
-        /* style du point brillant avec box-shadow continu */
-        .cursor-trail {
-            position: absolute;
-            pointer-events: none;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: rgba(75, 132, 245, 0.9);
-            /* couleur de base */
-            box-shadow:
-                0 0 15px 15px rgba(75, 132, 245, 0.9);
-            /* petite lueur interne */
-            transform: translate(-50%, -50%) scale(1);
-            animation: trail-fade 0.6s ease-out forwards;
-        }
-
-        @keyframes trail-fade {
-            to {
-                transform: translate(-50%, -50%) scale(3);
-                opacity: 0;
-            }
-        }
-    </style>
 </head>
 
 <body class="min-h-screen flex flex-col bg-black">
@@ -79,15 +79,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="w-full max-w-md bg-white p-8 rounded-lg shadow-2xl">
             <h1 class="text-3xl font-extrabold mb-6 text-center text-slate-900">Se connecter</h1>
 
-            <?php if (!empty($errors)): ?>
+            <?php if (!empty($errors)) { ?>
                 <div class="mb-6 p-4 bg-red-100 text-red-800 rounded-md border border-red-200">
                     <ul class="list-disc pl-5 space-y-1 text-sm">
-                        <?php foreach ($errors as $e): ?>
+                        <?php foreach ($errors as $e) { ?>
                             <li><?= htmlspecialchars($e, ENT_QUOTES) ?></li>
-                        <?php endforeach; ?>
+                        <?php } ?>
                     </ul>
                 </div>
-            <?php endif; ?>
+            <?php } ?>
 
             <form method="post" class="space-y-6">
                 <div>

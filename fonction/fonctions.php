@@ -747,7 +747,7 @@ function getCoursPlanning(): array
  * @param array $donnees Données à valider
  * @return array Liste des erreurs (vide si OK)
  */
-function validerDonnesCours(array $donnees): array
+function validerDonneesCours(array $donnees): array
 {
     $erreurs = array();
 
@@ -893,6 +893,31 @@ function supprimerCours(int $id): bool
 //==================================================================================================
 
 /**
+ * Valide les données d'un message.
+ * 
+ * @param array $donnees Données à valider
+ * @return array Liste des erreurs (vide si OK)
+ */
+function validerDonneesMessage(array $donnees): array
+{
+    $erreurs = array();
+
+    // Validation des champs requis
+    $champsRequis = array('nom', 'message',);
+    foreach ($champsRequis as $champ) {
+        if (empty($donnees[$champ])) {
+            array_push($erreurs, "Le champ '" . $champ . "' est requis.");
+        }
+    }
+
+    if (empty($donnees['email']) || !estValideMail($donnees['email'])) {
+        array_push($erreurs, "Adresse e-mail invalide.");
+    }
+
+    return $erreurs;
+}
+
+/**
  * Récupère la liste de tous les messages, non-lu en premier
  * 
  * @return array Liste des cours
@@ -914,7 +939,7 @@ function getListeMessages(): array
     if (!empty($_GET['unread'])) {
         $sql .= " WHERE is_read = 0";
     }
-    $sql .= " ORDER BY is_read ASc";
+    $sql .= " ORDER BY is_read ASC, date_sent DESC";
 
     try {
         // Récupération de la liste des messages
@@ -1057,7 +1082,7 @@ function validerDonneesPost(array $donnees): array
     $erreurs = array();
 
     // Validation des champs requis
-    $champsRequis = ['titre', 'contenu', 'auteur'];
+    $champsRequis = array('titre', 'contenu', 'auteur',);
     foreach ($champsRequis as $champ) {
         if (empty($donnees[$champ])) {
             array_push($erreurs, "Le champ '" . $champ . "' est requis.");

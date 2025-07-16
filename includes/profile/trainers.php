@@ -1,71 +1,117 @@
 <?php
-// 1) Lecture action + ID
+/**
+ * @author Chokri Kadoussi
+ * @author Anssoumane Sissokho
+ * @date 2025-07-16
+ * @version 1.0.0
+ *
+ * Présentation du fichier : Page de gestion des entraineurs
+ *
+ * TODO:
+ *
+ */
+
 $action = $_POST['action'] ?? '';
 $id = (int) ($_POST['id'] ?? 0);
 
-// 2) Flags métier
+// Flags métier
 $isCreate = $action === 'create';
 $isEdit = $action === 'edit' && $id > 0;
 $isStore = $action === 'store';
 $isUpdate = $action === 'update' && $id > 0;
 $isDestroy = $action === 'destroy' && $id > 0;
 
-// 3) Nettoyage initial
-$data = $_POST ? nettoyerDonnees($_POST) : [];
-$errors = [];
+// Nettoyage des données
+$data = $_POST ? nettoyerDonnees($_POST) : array();
+$errors = array(); // Initialisation du tableau d'erreurs
 
-// 4) Validation en store/update
+// Validation en création ou mise à jour
 if ($isStore || $isUpdate) {
-    $errors = validerDonnesEntraineur($data);  // TODO: ajouter excludeId si besoin
+    $errors = validerDonnesEntraineur($data);
 }
 
-// 5) Détermine le « mode édition » si clic edit ou update raté
+// Mode "édition" si clic edit ou update raté
 $isEdit = $isEdit || ($isUpdate && !empty($errors));
 
-// 6) Chargement du record pour le form
+// Chargement du record pour le formulaire
 if ($isEdit) {
-    if ($action === 'edit') {
-        $record = getEntraineurParId($id);
-    } else {
-        // update raté → on réaffiche les données saisies
-        $record = $data;
+    try {
+        if ($action === 'edit') {
+            $record = getEntraineurParId($id);  // Récupération des données de l'entraineur
+            if (!$record) {
+                setFlash('error', "Entraîneur introuvable pour l'édition.");
+                $isEdit = false; // Sortir du mode édition si non trouvé
+                $showForm = false; // Afficher le tableau de liste
+            }
+        } else {
+            // update raté → on réaffiche les données saisies
+            $record = $data;
+        }
+    } catch (Exception $e) {
+        logErreur("Partial includes/profile/trainers.php ", $e->getMessage(), array('id' => $id, 'action' => $action, ));
+        setFlash('error', "Erreur lors du chargement des informations de l'entraîneur.");
+        $isEdit = false; // Quitter le mode édition en cas d'erreur de chargement
+        $showForm = false; // Afficher la liste
     }
 }
 // création vierge
 elseif ($isCreate) {
-    $record = ['prenom' => '', 'nom' => '', 'bio' => '', 'photo' => ''];
+    $record = array('prenom' => '', 'nom' => '', 'bio' => '', 'photo' => '', );
 }
 
 // 7) Traitements store/update/destroy
+// Utilisation de blocs try-catch individuels pour un contrôle fin et des messages flash
 if ($isDestroy) {
-    supprimerEntraineur($id);
-    setFlash('success', 'Entraîneur supprimé.');
+    try {
+        supprimerEntraineur($id);
+        setFlash('success', 'Entraîneur supprimé.');
+    } catch (Exception $e) {
+        logErreur("Partial includes/profile/trainers.php ", $e->getMessage(), array('id' => $id, 'action' => $action, ));
+        setFlash('error', "Erreur lors de la suppression de l'entraîneur.");
+    }
 }
 
 if ($isStore && empty($errors)) {
-    enregistrerEntraineur($data);
-    setFlash('success', 'Entraîneur créé.');
+    try {
+        enregistrerEntraineur($data);
+        setFlash('success', 'Entraîneur créé.');
+        $showForm = false; // Réinitialiser $showForm à false pour afficher le tableau après succès
+    } catch (Exception $e) {
+        logErreur("Partial includes/profile/trainers.php ", $e->getMessage(), array('data' => $data, 'action' => $action, ));
+        setFlash('error', "Erreur lors de la création de l'entraîneur.");
+    }
 }
 
 if ($isUpdate && empty($errors)) {
-    modifierEntraineur($id, [
-        'prenom' => $data['prenom'],
-        'nom' => $data['nom'],
-        'bio' => $data['bio'],
-        'photo' => $data['photo'] ?? null
-    ]);
-    setFlash('success', 'Entraîneur mis à jour.');
+    try {
+        modifierEntraineur($id, array(
+            'prenom' => $data['prenom'],
+            'nom' => $data['nom'],
+            'bio' => $data['bio'],
+            'photo' => $data['photo'] ?? null,
+        ));
+        setFlash('success', 'Entraîneur mis à jour.');
+        $showForm = false; // Réinitialiser $showForm à false pour afficher le tableau après succès
+    } catch (Exception $e) {
+        logErreur("Partial includes/profile/trainers.php ", $e->getMessage(), array('id' => $id, 'data' => $data, 'action' => $action, ));
+        setFlash('error', "Erreur lors de la mise à jour de l'entraîneur.");
+    }
 }
 
-// 8) Choix form ou tableau
+// Déterminer l'affichage final : formulaire ou tableau de liste
 $showForm = $isCreate || $isEdit || (!empty($errors) && ($isStore || $isUpdate));
 
-// 9) Si pas de form, on charge le tableau
 if (!$showForm) {
-    $all = getListeEntraineurs();
+    try {
+        $all = getListeEntraineurs(); // Récupération de tous les entraîneurs pour le tableau
+    } catch (Exception $e) {
+        logErreur("Partial includes/profile/trainers.php ", $e->getMessage());
+        setFlash('error', 'Impossible de charger la liste des entraîneurs. Veuillez réessayer plus tard.');
+        $all = array(); // S'assurer que $all est un tableau vide en cas d'erreur
+    }
 
     $baseUrl = "profile.php?page=" . $pageActuelle;
-    // chargement du tableau
+    // chargement du tableau avec pagination
     $pag = paginateArray($all, 'p', 5);
     // on remplace les rows par le slice
     $rows = $pag['slice'];
@@ -75,14 +121,14 @@ if (!$showForm) {
     $end = min($pag['offset'] + $perPage, $total);
 }
 
-// 10) Config du composant table.php
-$headers = ['ID', 'Nom', 'Extrait bio', 'Création', 'Modification'];
-$fields = ['id', 'nom_complet', 'extrait_bio', 'date_creation', 'date_modification'];
-$formatters = []; // pas de format particulier
-$actions = [
-    ['icon' => 'pencil-alt', 'label' => 'Modifier', 'params' => fn($r) => ['action' => 'edit', 'id' => $r['id']]],
-    ['icon' => 'trash-alt', 'label' => 'Supprimer', 'confirm' => 'Supprimer cet entraîneur ?', 'params' => fn($r) => ['action' => 'destroy', 'id' => $r['id']]],
-];
+// Config du composant table.php
+$headers = array('ID', 'Nom', 'Extrait bio', 'Création', 'Modification', );
+$fields = array('id', 'nom_complet', 'extrait_bio', 'date_creation', 'date_modification', );
+$formatters = array(); // pas de format particulier
+$actions = array(
+    array('icon' => 'pencil-alt', 'label' => 'Modifier', 'params' => fn($r) => ['action' => 'edit', 'id' => $r['id']], ),
+    array('icon' => 'trash-alt', 'label' => 'Supprimer', 'confirm' => 'Supprimer cet entraîneur ?', 'params' => fn($r) => ['action' => 'destroy', 'id' => $r['id']], ),
+);
 ?>
 
 <?php displayFlash() ?>
@@ -156,7 +202,7 @@ $actions = [
             </div>
 
             <div class="flex flex-col-reverse sm:flex-row gap-4 pt-4 border-t border-slate-200">
-                <a href="profile.php?page=team"
+                <a href="profile.php?page=trainers"
                     class="w-full sm:flex-1 text-center px-5 py-2.5 font-semibold bg-slate-100 text-slate-800 rounded-lg hover:bg-slate-200 transition">
                     Annuler
                 </a>

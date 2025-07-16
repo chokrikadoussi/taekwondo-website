@@ -1,3 +1,15 @@
+<?php
+/**
+ * @author Chokri Kadoussi
+ * @author Anssoumane Sissokho
+ * @date 2025-07-16
+ * @version 1.0.0
+ * 
+ * Présentation du fichier : Template de Heade permettant de lier les fichiers CSS et JS, les icones, les mots-clés et le titre de la page
+ * 
+ */
+?>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Taekwondo Club – <?= isset($pageTitle) ? htmlspecialchars($pageTitle) : 'Accueil' ?>

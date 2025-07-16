@@ -1,87 +1,113 @@
 <?php
-
-// 1) Détection du POST “edit” ou “save”
+/**
+ * @author Chokri Kadoussi
+ * @author Anssoumane Sissokho
+ * @date 2025-07-16
+ * @version 1.0.0
+ *
+ * Présentation du fichier : Page Mon profil
+ *
+ * Informations techniques concernant la configuration du composant table.php :
+ * - Headers     : Détermine le nom des en-têtes affiché dans la table
+ * - Fields      : Détermine les champs techniques récupérer en base de données via fonctions get*
+ * - Formatters  : Détermine les fonctions de formattage des données récupérées (Couleur spécifique, code html a retourné)
+ * - Actions     : Détermine les actions à effectuer sur les données récupérées via des fonctions callback (Modifier, Supprimer)
+ *
+ * TODO:
+ *
+ */
 $action = $_POST['action'] ?? '';
 $isEdit = ($_POST['action'] ?? '') === 'edit';
 
-// 2) Si POST “save”, on traite la mise à jour
+// Initialisation de $errors pour les cas d'affichage d'erreur
+$errors = array();
+
+// Si POST “save”, on traite la mise à jour
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save') {
-  $raw = [
+  $raw = array(
     'prenom' => $_POST['prenom'] ?? '',
     'nom' => $_POST['nom'] ?? '',
     'email' => $_POST['email'] ?? '',
     'motdepasse' => $_POST['motdepasse'] ?? '',
-    'confirm_pass' => $_POST['confirm_pass'] ?? '',
+    'confirm' => $_POST['confirm'] ?? '',
     'current_pass' => $_POST['current_pass'] ?? '',
-  ];
+  );
+
   $data = nettoyerDonnees($raw);
-  $errors = [];
 
-  if ($data['prenom'] === '')
-    $errors[] = 'Le prénom est requis.';
-  if ($data['nom'] === '')
-    $errors[] = 'Le nom est requis.';
-  if ($data['email'] === '' || !estValideMail($data['email'])) {
-    $errors[] = 'Email invalide.';
-  } elseif (
-    $data['email'] !== $_SESSION['user']['email']
-    && isUtilisateur($data['email'])
-  ) {
-    $errors[] = 'Cet email est déjà utilisé.';
-  }
-  if ($data['motdepasse'] !== '') {
-    if (!authentification($_SESSION['user']['email'], $data['current_pass'])) {
-      $errors[] = 'Mot de passe actuel incorrect.';
-    }
-    if (!estValideMotdepasse($data['motdepasse'])) {
-      $errors[] = 'Le nouveau mot de passe ne respecte pas les contraintes.';
-    }
-    if ($data['motdepasse'] !== $data['confirm_pass']) {
-      $errors[] = 'La confirmation du mot de passe ne correspond pas.';
+  // Validation des données du profil via la fonction générique pour les utilisateurs
+  // On passe l'ID de l'utilisateur actuel pour exclure son propre email lors de la vérification d'unicité
+  $errors = validerDonneesUtilisateur($data, $_SESSION['user']['id']);
+
+  // Si un nouveau mot de passe a été saisi
+  if (!empty($data['motdepasse'])) {
+    try {
+      // Vérifier le mot de passe actuel
+      if (!authentification($_SESSION['user']['email'], $data['current_pass'])) {
+        array_push($errors, 'Mot de passe actuel incorrect.');
+      }
+    } catch (Exception $e) {
+      logErreur("Partial incldues/profile/overview.php ", $e->getMessage(), array('id' => $_SESSION['user']['id'], 'action' => 'authentification_current_pass', ));
+      array_push($errors, 'Erreur lors de la vérification du mot de passe actuel. Veuillez réessayer plus tard.');
     }
   }
 
+  // Si aucune erreur après toutes les validations
   if (empty($errors)) {
-    $fields = [
+    $fields_to_update = array(
       'prenom' => $data['prenom'],
       'nom' => $data['nom'],
       'email' => $data['email'],
-    ];
-    if ($data['motdepasse'] !== '') {
-      $fields['mdp_securise'] = password_hash($data['motdepasse'], PASSWORD_DEFAULT);
+    );
+
+    // Ajouter le mot de passe haché si un nouveau mot de passe a été fourni et validé
+    if (!empty($data['motdepasse'])) {
+      $fields_to_update['mdp_securise'] = password_hash($data['motdepasse'], PASSWORD_DEFAULT);
     }
-    if (modifierUtilisateur($_SESSION['user']['id'], $fields)) {
-      // maj session + flash + reload
-      $_SESSION['user']['prenom'] = $data['prenom'];
-      $_SESSION['user']['nom'] = $data['nom'];
-      $_SESSION['user']['email'] = $data['email'];
-      setFlash('success', 'Profil mis à jour avec succès.');
-    } else {
-      setFlash('error', 'Échec de la mise à jour, réessayez.');
-      $isEdit = true;
+
+    try {
+      // Mise à jour de la session de l'utilisateur avec les nouvelles données
+      if (modifierUtilisateur($_SESSION['user']['id'], $fields_to_update)) {
+        $_SESSION['user']['prenom'] = $data['prenom'];
+        $_SESSION['user']['nom'] = $data['nom'];
+        $_SESSION['user']['email'] = $data['email'];
+        setFlash('success', 'Profil mis à jour avec succès.');
+      } else {
+        // modifierUtilisateur a retourné false, mais sans exception
+        setFlash('error', 'Échec de la mise à jour, aucune modification effectuée. Réessayez.');
+        $isEdit = true; // Reste en mode édition pour permettre de corriger
+      }
+    } catch (Exception $e) {
+      logErreur("Partial incldues/profile/overview.php ", $e->getMessage(), array('user_id' => $_SESSION['user']['id'], 'fields' => $fields_to_update, ));
+      setFlash('error', 'Une erreur est survenue lors de la mise à jour du profil. Veuillez réessayer plus tard.');
+      $isEdit = true; // Reste en mode édition en cas d'erreur technique
     }
   } else {
+    // Si des erreurs de validation sont présentes, les afficher via des flash messages
     foreach ($errors as $e) {
       setFlash('error', $e);
     }
-    $isEdit = true;
+    $isEdit = true; // Rester en mode édition pour permettre à l'utilisateur de corriger
   }
 }
 
-// 3) Données courantes
-$current = [
-  'prenom' => $_SESSION['user']['prenom'],
-  'nom' => $_SESSION['user']['nom'],
-  'email' => $_SESSION['user']['email'],
+// Données courantes pour l'affichage du profil ou le pré-remplissage du formulaire
+// Initialiser avec les données de session qui sont toujours à jour si la modification a réussi
+// ou avec les données POST nettoyées si la validation a échoué.
+$current = array(
+  'prenom' => $data['prenom'] ?? $_SESSION['user']['prenom'],
+  'nom' => $data['nom'] ?? $_SESSION['user']['nom'],
+  'email' => $data['email'] ?? $_SESSION['user']['email'],
   'role' => $_SESSION['user']['role'],
-  'date_creation' => $_SESSION['user']['date_creation'],
-];
+  'date_creation' => $_SESSION['user']['date_creation'] ?? '',
+);
+?>
 ?>
 
 <div class="space-y-6">
   <?php displayFlash(); // Les messages flash sont conservés ?>
 
-  <?php if ($isEdit): ?>
+  <?php if ($isEdit) { ?>
     <h2 class="text-2xl font-bold text-slate-800">Modifier mon profil</h2>
     <div class="bg-white rounded-lg shadow-md p-6 border border-slate-200">
       <form method="post" class="space-y-6">
@@ -124,8 +150,8 @@ $current = [
                 class="mt-1 w-full border border-slate-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
-              <label for="confirm_pass" class="block text-sm font-medium text-slate-700">Confirmer</label>
-              <input type="password" name="confirm_pass" id="confirm_pass"
+              <label for="confirm" class="block text-sm font-medium text-slate-700">Confirmer</label>
+              <input type="password" name="confirm" id="confirm"
                 class="mt-1 w-full border border-slate-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
           </div>
@@ -144,7 +170,7 @@ $current = [
       </form>
     </div>
 
-  <?php else: ?>
+  <?php } else { ?>
 
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
       <h2 class="text-2xl font-bold text-slate-800">Mon profil</h2>
@@ -185,5 +211,5 @@ $current = [
       </dl>
     </div>
 
-  <?php endif; ?>
+  <?php } ?>
 </div>

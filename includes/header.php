@@ -1,4 +1,14 @@
 <?php
+/**
+ * @author Chokri Kadoussi
+ * @author Anssoumane Sissokho
+ * @date 2025-07-16
+ * @version 1.0.0
+ * 
+ * Présentation du fichier : Template de Header et navigation du site
+ * 
+ */
+
 // On définit les liens de navigation dans un tableau pour une meilleure maintenabilité
 $navLinks = [
     'Accueil' => ['url' => 'index.php', 'id' => 'home'],

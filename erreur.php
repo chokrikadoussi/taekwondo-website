@@ -1,4 +1,15 @@
 <?php
+/**
+ * @author Chokri Kadoussi
+ * @author Anssoumane Sissokho
+ * @date 2025-07-16
+ * @version 1.0.0
+ * 
+ * Présentation du fichier : Page d'erreur qui s'affiche lorsque la bdd est en erreur
+ * 
+ * TODO: Vérifier l'appel de la page lors d'une erreur de connexion à la bdd
+ * 
+ */
 $pageTitle = 'Erreur base de données';
 ?>
 

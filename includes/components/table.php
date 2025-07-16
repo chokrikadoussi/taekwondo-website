@@ -11,7 +11,7 @@
 ?>
 
 <div class="w-full overflow-x-auto">
-    <table id="msg-table" class="table-auto w-full divide-y divide-slate-200 bg-white">
+    <table id="<?= isset($id_tableau) ? $id_tableau : '' ?>" class="table-auto w-full divide-y divide-slate-200 bg-white">
         <thead class="bg-slate-50">
             <tr>
                 <?php foreach ($headers as $h): ?>

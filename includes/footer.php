@@ -1,6 +1,15 @@
 <?php
-// public/includes/footer.php
-// À inclure juste avant </body> de chaque page
+/**
+ * @author Chokri Kadoussi
+ * @author Anssoumane Sissokho
+ * @date 2025-07-16
+ * @version 1.0.0
+ * 
+ * Présentation du fichier : Template de Footer du site, liens vers  les réseaux du Club de St Priest et remerciement
+ * 
+ * TODO: Ajouter page de mentions légales, Politique de confidentialité et FAQ
+ * 
+ */
 ?>
 <footer class="bg-black border-t mt-12 relative bottom-0 w-full">
     <div class="mx-auto max-w-7xl px-4 py-6 text-center text-sm text-white">

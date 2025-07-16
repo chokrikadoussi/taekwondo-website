@@ -1,108 +1,167 @@
 <?php
-// --- 1) Lecture de l’action et de l’ID
+/**
+ * @author Chokri Kadoussi
+ * @author Anssoumane Sissokho
+ * @date 2025-07-16
+ * @version 1.0.0
+ *
+ * Présentation du fichier : Page de gestion des utilisateurs
+ *
+ * TODO:
+ *
+ */
+
 $action = $_POST['action'] ?? '';
 $id = (int) ($_POST['id'] ?? 0);
 
-// --- 2) Flags métier
+// Flags métier
 $isCreate = $action === 'create';
 $isEdit = $action === 'edit' && $id > 0;
 $isStore = $action === 'store';
 $isUpdate = $action === 'update' && $id > 0;
 $isDestroy = $action === 'destroy' && $id > 0;
 
-// --- 3) Nettoyage initial des POST
-$data = $_POST ? nettoyerDonnees($_POST) : [];
-$errors = [];
+// Nettoyage initial des POST
+$data = $_POST ? nettoyerDonnees($_POST) : array();
+$errors = array(); // Initialisation du tableau d'erreurs
 
-// --- 4) Validation en cas de creation ou update
+// Validation en création ou mise à jourr
 if ($isStore || $isUpdate) {
     $errors = validerDonneesUtilisateur($data, $isUpdate ? $id : null);
 }
 
-// --- 5) Détermine si on reste en mode édition après un update raté
+// Mode "édition" si clic edit ou update raté
 $isEdit = $isEdit || ($isUpdate && !empty($errors));
 
-// --- 6) Chargement du record pour le form
+// Chargement du record pour le formulaire
 if ($isEdit) {
-    // édition initiale
-    if ($action === 'edit') {
-        $record = getUtilisateurParId($id);
-    }
-    // update raté
-    else {
-        $record = $data;
+    try {
+        if ($action === 'edit') {
+            $record = getUtilisateurParId($id);
+            if (!$record) {
+                setFlash('error', "Utilisateur introuvable pour l'édition.");
+                $isEdit = false; // Sortir du mode édition
+                $showForm = false; // Afficher la liste
+            }
+        } else {
+            $record = $data;
+        }
+    } catch (Exception $e) {
+        logErreur("Partial includes/profile/users.php ", $e->getMessage(), array('id' => $id, 'action' => $action, ));
+        setFlash('error', "Erreur lors du chargement des informations de l'utilisateur.");
+        $isEdit = false; // Quitter le mode édition en cas d'erreur de chargement
+        $showForm = false; // Afficher la liste
     }
 }
-// création vierge
+// création vierge (record initialisé avec des valeurs vides)
 elseif ($isCreate) {
-    $record = ['email' => '', 'prenom' => '', 'nom' => '', 'role' => 'membre'];
+    $record = array('email' => '', 'prenom' => '', 'nom' => '', 'role' => 'membre', );
 }
 
-// --- 7) Traitements métier
+// Traitements métier (suppression, enregistrement, mise à jour)
+// Utilisation de blocs try-catch individuels pour un contrôle fin et des messages flash
 if ($isDestroy) {
-    supprimerUtilisateur($id);
-    setFlash('success', 'Utilisateur supprimé.');
+    try {
+        supprimerUtilisateur($id);
+        setFlash('success', 'Utilisateur supprimé.');
+    } catch (Exception $e) {
+        logErreur("Partial includes/profile/users.php ", $e->getMessage(), array('id' => $id, 'action' => $action, ));
+        setFlash('error', "Erreur lors de la suppression de l'utilisateur.");
+    }
 }
 
 if ($isStore && empty($errors)) {
-    $data['mdp_securise'] = password_hash($data['motdepasse'], PASSWORD_DEFAULT);
-    enregistrerUtilisateur($data);
-    setFlash('success', 'Utilisateur créé.');
+    try {
+        $data['mdp_securise'] = password_hash($data['motdepasse'], PASSWORD_DEFAULT);
+        if (enregistrerUtilisateur($data)) {
+            setFlash('success', 'Utilisateur créé.');
+            $showForm = false; // Revenir à la liste après création réussie
+        } else {
+            setFlash('error', "Erreur lors de la création de l'utilisateur.");
+        }
+    } catch (Exception $e) {
+        logErreur("Partial includes/profile/users.php ", $e->getMessage(), array('data' => $data, 'action' => $action, ));
+        setFlash('error', "Erreur lors de l'enregistrement de l'utilisateur.");
+    }
 }
 
 if ($isUpdate && empty($errors)) {
-    if (!empty($data['motdepasse'])) {
-        $data['mdp_securise'] = password_hash($data['motdepasse'], PASSWORD_DEFAULT);
+    try {
+        $fields_to_update = array(
+            'email' => $data['email'],
+            'prenom' => $data['prenom'],
+            'nom' => $data['nom'],
+            'role' => $data['role'],
+        );
+        if (!empty($data['motdepasse'])) {
+            $fields_to_update['mdp_securise'] = password_hash($data['motdepasse'], PASSWORD_DEFAULT);
+        }
+
+        if (modifierUtilisateur($id, $fields_to_update)) {
+            setFlash('success', 'Utilisateur mis à jour.');
+            $showForm = false; // Revenir à la liste après mise à jour réussie
+        } else {
+            setFlash('error', "Échec de la mise à jour de l'utilisateur.");
+        }
+    } catch (Exception $e) {
+        logErreur("Partial includes/profile/users.php ", $e->getMessage(), array('id' => $id, 'data' => $data, 'action' => $action, ));
+        setFlash('error', "Erreur lors de la mise à jour de l'utilisateur.");
     }
-    modifierUtilisateur($id, [
-        'email' => $data['email'],
-        'prenom' => $data['prenom'],
-        'nom' => $data['nom'],
-        'role' => $data['role']
-    ]);
-    setFlash('success', 'Utilisateur mis à jour.');
 }
 
-// --- 8) Affichage : choix entre form ou tableau
+// Déterminer l'affichage final : formulaire ou tableau de liste
 $showForm = $isCreate || $isEdit || (!empty($errors) && ($isStore || $isUpdate));
 
 if (!$showForm) {
-
-    $baseUrl = "profile.php?page=" . $pageActuelle;
-
-    $all = getListeUtilisateurs();
-    // chargement du tableau
-    $pag = paginateArray($all, 'p', 5);
-    // on remplace les rows par le slice
-    $rows = $pag['slice'];
-    // et on récupère les infos de pagination
-    extract($pag); // pageNum, perPage, total, totalPages, offset, slice
-    $start = $pag['offset'] + 1;
-    $end = min($pag['offset'] + $perPage, $total);
-
+    try {
+        $baseUrl = "profile.php?page=" . $pageActuelle;
+        $all = getListeUtilisateurs(); // Récupération de tous les utilisateurs pour le tableau
+        // chargement du tableau avec pagination
+        $pag = paginateArray($all, 'p', 5);
+        // on remplace les rows par le slice
+        $rows = $pag['slice'];
+        // et on récupère les infos de pagination
+        extract($pag); // pageNum, perPage, total, totalPages, offset, slice
+        $start = $pag['offset'] + 1;
+        $end = min($pag['offset'] + $perPage, $total);
+    } catch (Exception $e) {
+        logErreur("Partial includes/profile/users.php ", $e->getMessage());
+        setFlash('error', 'Impossible de charger la liste des utilisateurs. Veuillez réessayer plus tard.');
+        $all = array(); // S'assurer que $all est un tableau vide en cas d'erreur
+        $rows = array(); // S'assurer que $rows est vide pour ne pas casser la table
+        // Initialiser les variables de pagination si besoin pour éviter des erreurs dans le HTML
+        $pageNum = 1;
+        $perPage = 5;
+        $total = 0;
+        $totalPages = 1;
+        $offset = 0;
+        $start = 0;
+        $end = 0;
+    }
 }
 
-// --- 9) Configuration table.php
-$headers = ['ID', 'Nom', 'Email', 'Rôle', 'Création', 'Modification'];
-$fields = ['id', 'nom_complet', 'email', 'role', 'date_creation', 'date_modification'];
-$formatters = [
+// Configuration table.php
+$headers = array('ID', 'Nom', 'Email', 'Rôle', 'Création', 'Modification', );
+$fields = array('id', 'nom_complet', 'email', 'role', 'date_creation', 'date_modification', );
+$formatters = array(
     'role' => fn($r) => "<span class=\"inline-flex px-2.5 py-1 rounded-full text-xs font-semibold "
-        . ($r === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800')
+        . ($r === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800')
         . "\">" . htmlspecialchars(ucfirst($r), ENT_QUOTES) . "</span>"
-];
-$actions = [
-    [
+    ,
+);
+$actions = array(
+    array(
         'icon' => 'pencil-alt',
         'label' => 'Modifier',
-        'params' => fn($r) => ['action' => 'edit', 'id' => $r['id']]
-    ],
-    [
+        'params' => fn($r) => ['action' => 'edit', 'id' => $r['id']],
+    ),
+    array(
         'icon' => 'trash-alt',
         'label' => 'Supprimer',
         'confirm' => 'Supprimer cet utilisateur ?',
-        'params' => fn($r) => ['action' => 'destroy', 'id' => $r['id']]
-    ],
-];
+        'params' => fn($r) => ['action' => 'destroy', 'id' => $r['id']],
+    ),
+);
 ?>
 
 <!-- Affichage -->

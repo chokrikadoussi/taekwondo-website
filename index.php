@@ -1,15 +1,29 @@
 <?php
+/**
+ * @author Chokri Kadoussi
+ * @author Anssoumane Sissokho
+ * @date 2025-07-16
+ * @version 1.0.0
+ * 
+ * Présentation du fichier : Page d'Accueil du site web. Point d'entrée de l'application.
+ * -> Découpé en plusieurs sections : Hero, Dernières news, Témoignages
+ *      
+ * TODO:
+ * - Ajouter le quizz d'orientation après la section hero
+ * 
+ */
 session_start();
 $pageTitle = 'Accueil';
 $pageActuelle = 'home';
 require __DIR__ . '/fonction/fonctions.php';
 
+// Récupérer les trois derniers posts pour la section "Dernières actualités"
 $posts = array_slice(getListePosts(150), 0, 3);
 
 ?>
 
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="scroll-smooth">
 
 <head>
     <?php include __DIR__ . '/includes/head.php'; ?>
@@ -19,7 +33,7 @@ $posts = array_slice(getListePosts(150), 0, 3);
     <?php include __DIR__ . '/includes/header.php'; ?>
     <main class="flex-grow">
 
-        <!-- Hero Page -->
+        <!-- Hero Section -->
         <div class="bg-black text-white overflow-hidden relative">
             <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent z-20"></div>
 
@@ -70,29 +84,38 @@ $posts = array_slice(getListePosts(150), 0, 3);
                     <p class="mt-2 text-lg text-slate-600">Restez informé de la vie du club.</p>
                 </div>
                 <div class="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                    <?php foreach ($posts as $post): ?>
+                    <?php foreach ($posts as $post) { ?>
                         <article
                             class="bg-white rounded-lg shadow-md overflow-hidden flex flex-col transition duration-300 hover:shadow-xl hover:-translate-y-1">
                             <a href="news_detail.php?id=<?= $post['id'] ?>"
                                 class="h-48 bg-slate-200 flex items-center justify-center text-slate-400">
-                                <i class="fas fa-image fa-3x"></i>
+                                <?php if (!empty($post['photo'])) { ?>
+                                    <img src="img/<?= htmlspecialchars($post['photo'], ENT_QUOTES) ?>"
+                                        alt="Image de <?= htmlspecialchars($post['titre'], ENT_QUOTES) ?>"
+                                        class="object-cover w-full h-full">
+                                <?php } else { ?>
+                                    <div class="w-full h-full flex items-center justify-center text-slate-400">
+                                        <i class="fa-solid fa-image fa-6x"></i>
+                                    </div>
+                                <?php } ?>
                             </a>
                             <div class="p-6 flex flex-col flex-grow">
                                 <div class="flex-grow">
                                     <div class="flex flex-wrap gap-2 mb-2">
-                                        <?php foreach (explode(',', $post['tags'] ?? '') as $tag):
-                                            if (!trim($tag))
-                                                continue; ?>
+                                        <?php foreach (explode(',', $post['tags'] ?? '') as $tag) {
+                                            if (!trim($tag)) {
+                                                continue;
+                                            } ?>
                                             <a href="news.php?tag=<?= urlencode(trim($tag)) ?>"
                                                 class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-semibold hover:bg-blue-200">
                                                 <?= htmlspecialchars(trim($tag), ENT_QUOTES) ?>
                                             </a>
-                                        <?php endforeach; ?>
+                                        <?php } ?>
                                     </div>
                                     <h3 class="text-xl font-bold text-slate-900 mb-2 line-clamp-2">
                                         <a href="news_detail.php?id=<?= $post['id'] ?>"
                                             class="hover:text-blue-600 transition-colors">
-                                            <?= htmlspecialchars($post['titre'], ENT_QUOTES) ?>
+                                            <?= htmlspecialchars(ucfirst($post['titre']), ENT_QUOTES) ?>
                                         </a>
                                     </h3>
                                     <p class="text-sm text-slate-500 mb-4">
@@ -111,7 +134,7 @@ $posts = array_slice(getListePosts(150), 0, 3);
                                 </div>
                             </div>
                         </article>
-                    <?php endforeach; ?>
+                    <?php } ?>
                 </div>
                 <div class="mt-12 text-center">
                     <a href="news.php"
@@ -133,7 +156,7 @@ $posts = array_slice(getListePosts(150), 0, 3);
                 <div class="relative group">
                     <div id="carousel-wrapper" class="overflow-hidden">
                         <div id="carousel-track" class="flex transition-transform duration-500 ease-in-out">
-                            <?php foreach (getTemoignages() as $t): ?>
+                            <?php foreach (getTemoignages() as $t) { ?>
                                 <figure class="flex-shrink-0 w-full md:w-1/2 lg:w-1/3 px-4">
                                     <div class="bg-slate-50 p-8 rounded-lg h-full">
                                         <i class="fas fa-quote-left text-blue-200 text-5xl"></i>
@@ -155,7 +178,7 @@ $posts = array_slice(getListePosts(150), 0, 3);
                                         </figcaption>
                                     </div>
                                 </figure>
-                            <?php endforeach; ?>
+                            <?php } ?>
                         </div>
                     </div>
 

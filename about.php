@@ -1,10 +1,20 @@
 <?php
+/**
+ * @author Chokri Kadoussi
+ * @author Anssoumane Sissokho
+ * @date 2025-07-16
+ * @version 1.0.0
+ * 
+ * Présentation du fichier : Page A Propos (présentation du club).
+ * -> Découpé en plusieurs sections : Infos, Exploits, Valeurs, Planning    
+ * 
+ */
 session_start();
 $pageTitle = 'À propos';
 $pageActuelle = 'about';
 
 require __DIR__ . '/fonction/fonctions.php';
-$classes = getListeCours();
+$classes = getListeCours();  // Récupération de la liste des cours
 
 $nav = [
     'quisommesnous' => ['icon' => 'info-circle', 'label' => 'Qui sommes-nous?'],
@@ -13,6 +23,8 @@ $nav = [
     'noscours' => ['icon' => 'dumbbell', 'label' => 'Nos cours'],
     'planning' => ['icon' => 'calendar-alt', 'label' => 'Planning'],
 ];
+
+// Jeu de données statiques à afficher
 $exploits = [
     'Champions régionaux 2023 & 2024',
     'Plus de 50 médailles nationales',
@@ -24,16 +36,20 @@ $valeurs = [
     'Excellence' => 'Quête de maîtrise technique et mentale.',
     'Communauté' => 'Esprit d’entraide sur et hors du tatami.',
 ];
-$rawSchedule = getCoursPlanning();
-$dayNames = [2 => 'Lundi', 3 => 'Mardi', 4 => 'Mercredi', 5 => 'Jeudi', 6 => 'Vendredi', 7 => 'Samedi'];
-$days = array_keys($dayNames);
-$start = 12;
-$end = 22;
-$schedule = $skip = [];
-foreach ($rawSchedule as $r) {
-    $d = (int) $r['jour'];
-    $h = (int) $r['heure_debut'];
-    $schedule[$d][$h][] = $r;
+
+// Affichage du planning
+$planningEntier = getCoursPlanning();
+$mappingJour = [2 => 'Lundi', 3 => 'Mardi', 4 => 'Mercredi', 5 => 'Jeudi', 6 => 'Vendredi', 7 => 'Samedi']; // Mapping des jours de la semaine depuis la bdd
+$jours = array_keys($mappingJour);
+$start = 12;  // Première heure à afficher dans le planning
+$end = 22;    // Dernière heure à afficher dans le planning
+$planning = array();
+$skip = array();
+// Stockage des heures pour chaque cours existant
+foreach ($planningEntier as $cours) {
+    $j = (int) $cours['jour'];
+    $h = (int) $cours['heure_debut'];
+    $planning[$j][$h][] = $cours;
 }
 ?>
 <!DOCTYPE html>
@@ -50,7 +66,7 @@ foreach ($rawSchedule as $r) {
         <aside class="hidden lg:block sticky top-28 self-start w-64 flex-shrink-0">
             <nav class="bg-white rounded-lg shadow-md p-4">
                 <ul class="space-y-2">
-                    <?php foreach ($nav as $id => $item): ?>
+                    <?php foreach ($nav as $id => $item) { ?>
                         <li>
                             <a href="#<?= $id ?>"
                                 class="flex items-center px-3 py-2 rounded-lg text-slate-700 font-medium hover:bg-blue-50 hover:text-blue-700 transition-colors duration-200">
@@ -58,19 +74,19 @@ foreach ($rawSchedule as $r) {
                                 <span><?= $item['label'] ?></span>
                             </a>
                         </li>
-                    <?php endforeach; ?>
+                    <?php } ?>
                 </ul>
             </nav>
         </aside>
 
         <section class="flex-grow space-y-20 max-w-5xl">
-            <header id="quisommesnous" class="text-center scroll-mt-24">
+            <article id="quisommesnous" class="text-center scroll-mt-24">
                 <h1 class="text-4xl lg:text-5xl font-extrabold text-slate-900">
                     À propos de notre Club
                 </h1>
                 <p class="mt-4 text-lg text-slate-600">Découvrez notre histoire, nos valeurs et ce qui fait la force de
                     notre communauté.</p>
-            </header>
+            </article>
 
             <article class="space-y-4 scroll-mt-24">
                 <h2 class="text-3xl font-bold text-slate-900">Qui sommes-nous&nbsp;?</h2>
@@ -93,7 +109,7 @@ foreach ($rawSchedule as $r) {
             <article id="nosexploits" class="space-y-6 scroll-mt-24">
                 <h2 class="text-3xl font-bold text-slate-900">Nos exploits</h2>
                 <ul class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <?php foreach ($exploits as $e): ?>
+                    <?php foreach ($exploits as $e) { ?>
                         <li class="bg-white p-6 rounded-lg shadow-md flex items-start space-x-4">
                             <div
                                 class="flex-shrink-0 bg-blue-100 text-blue-600 rounded-full h-12 w-12 flex items-center justify-center">
@@ -101,20 +117,20 @@ foreach ($rawSchedule as $r) {
                             </div>
                             <span class="font-medium text-slate-700 pt-3"><?= $e ?></span>
                         </li>
-                    <?php endforeach; ?>
+                    <?php } ?>
                 </ul>
             </article>
 
             <article id="nosvaleurs" class="space-y-6 scroll-mt-24">
                 <h2 class="text-3xl font-bold text-slate-900">Nos valeurs</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <?php foreach ($valeurs as $t => $d): ?>
+                    <?php foreach ($valeurs as $titre => $desc) { ?>
                         <div
                             class="bg-white p-6 rounded-lg shadow-md transition duration-300 hover:shadow-xl hover:-translate-y-1">
-                            <h3 class="text-xl font-bold text-blue-600 mb-2"><?= $t ?></h3>
-                            <p class="text-slate-700"><?= $d ?></p>
+                            <h3 class="text-xl font-bold text-blue-600 mb-2"><?= $titre ?></h3>
+                            <p class="text-slate-700"><?= $desc ?></p>
                         </div>
-                    <?php endforeach; ?>
+                    <?php } ?>
                 </div>
             </article>
 
@@ -129,8 +145,8 @@ foreach ($rawSchedule as $r) {
                     <i class="fas fa-chevron-right text-blue-600 h-5 w-5"></i>
                 </button>
                 <div id="courses-carousel" class="flex gap-6 overflow-x-auto py-4 px-2 scroll-snap-x snap-mandatory">
-                    <?php foreach ($classes as $c): ?>
-                        <article
+                    <?php foreach ($classes as $c) { ?>
+                        <div
                             class="snap-start flex-shrink-0 w-10/12 md:w-1/2 lg:w-[32%] bg-white p-8 rounded-2xl shadow-lg flex flex-col">
                             <h3 class="text-2xl font-bold text-blue-600 mb-3"><?= htmlspecialchars($c['nom'], ENT_QUOTES) ?>
                             </h3>
@@ -140,8 +156,8 @@ foreach ($rawSchedule as $r) {
                                 <span class="ml-2 text-slate-500">/ mois</span>
                             </div>
                             <p class="text-slate-600 mb-6 flex-grow"><?= htmlspecialchars($c['niveau'], ENT_QUOTES) ?></p>
-                        </article>
-                    <?php endforeach; ?>
+                        </div>
+                    <?php } ?>
                 </div>
             </article>
 
@@ -153,28 +169,28 @@ foreach ($rawSchedule as $r) {
                             <tr>
                                 <th class="w-20 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">
                                     Heure</th>
-                                <?php foreach ($days as $d): ?>
+                                <?php foreach ($jours as $j) { ?>
                                     <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">
-                                        <?= $dayNames[$d] ?>
+                                        <?= $mappingJour[$j] ?>
                                     </th>
-                                <?php endforeach; ?>
+                                <?php } ?>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-200">
-                            <?php for ($h = $start; $h <= $end; $h++): ?>
+                            <?php for ($h = $start; $h <= $end; $h++) { ?>
                                 <tr>
                                     <td class="px-4 py-2 text-right font-medium text-sm text-slate-400">
                                         <?= sprintf('%02d:00', $h) ?>
                                     </td>
-                                    <?php foreach ($days as $d): ?>
-                                        <?php if (!empty($skip[$d][$h]))
+                                    <?php foreach ($jours as $j) { ?>
+                                        <?php if (!empty($skip[$j][$h]))
                                             continue; ?>
-                                        <?php if (!empty($schedule[$d][$h])): ?>
-                                            <?php foreach ($schedule[$d][$h] as $c):
-                                                $endH = (int) $c['heure_fin'];
-                                                $span = max(1, $endH - $h);
+                                        <?php if (!empty($planning[$j][$h])) { ?>
+                                            <?php foreach ($planning[$j][$h] as $c) {
+                                                $heureFin = (int) $c['heure_fin'];
+                                                $span = max(1, $heureFin - $h);
                                                 for ($i = $h; $i < $h + $span; $i++)
-                                                    $skip[$d][$i] = true;
+                                                    $skip[$heureFin][$i] = true;
                                                 ?>
                                                 <td rowspan="<?= $span ?>" class="p-1 align-top">
                                                     <div
@@ -186,17 +202,17 @@ foreach ($rawSchedule as $r) {
                                                             <?= ucfirst(htmlspecialchars($c['niveau'], ENT_QUOTES)) ?>
                                                         </div>
                                                         <div class="text-xs text-slate-500 mt-auto pt-1">
-                                                            <?= sprintf('%02d:00–%02d:00', $h, $endH) ?>
+                                                            <?= sprintf('%02d:00–%02d:00', $h, $heureFin) ?>
                                                         </div>
                                                     </div>
                                                 </td>
-                                            <?php endforeach; ?>
-                                        <?php else: ?>
+                                            <?php } ?>
+                                        <?php } else { ?>
                                             <td class="h-16"></td>
-                                        <?php endif; ?>
-                                    <?php endforeach; ?>
+                                        <?php } ?>
+                                    <?php } ?>
                                 </tr>
-                            <?php endfor; ?>
+                            <?php } ?>
                         </tbody>
                     </table>
                 </div>
@@ -205,7 +221,7 @@ foreach ($rawSchedule as $r) {
     </main>
 
     <?php include __DIR__ . '/includes/footer.php'; ?>
-    <script src="js/main.js"></script>
+    <script src="js/main.js" defer></script>
 </body>
 
 </html>

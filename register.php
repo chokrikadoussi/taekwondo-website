@@ -9,57 +9,49 @@ $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-
-
-    // 1) Récupération brute
+    // Récupération brute
     $raw = [
         'email' => $_POST['email'] ?? '',
         'motdepasse' => $_POST['motdepasse'] ?? '',
-        'mdp_confirm' => $_POST['mdp_confirm'] ?? '',
+        'confirm' => $_POST['confirm'] ?? '',
         'prenom' => $_POST['prenom'] ?? '',
         'nom' => $_POST['nom'] ?? '',
-        'role' => $_POST['role'] ?? 'membre',
+        'role' => 'membre',
     ];
 
-    // 2) Nettoyage des données
+    // Nettoyage des données
     $data = nettoyerDonnees($raw);
 
-    // 3) Validation
-    if (empty($data['email']) || !estValideMail($data['email'])) {
-        $errors[] = 'Adresse e-mail invalide.';
-    }
-    if (empty($data['motdepasse']) || !estValideMotdepasse($data['motdepasse'])) {
-        $errors[] = 'Le mot de passe ne respecte pas la politique.';
-    }
-    if ($data['motdepasse'] !== $raw['mdp_confirm']) {
-        $errors[] = 'La confirmation du mot de passe ne correspond pas.';
-    }
-    if (empty($data['prenom'])) {
-        $errors[] = 'Le prénom est requis.';
-    }
-    if (empty($data['nom'])) {
-        $errors[] = 'Le nom est requis.';
-    }
-    if (isUtilisateur($data['email'])) {
-        $errors[] = 'Cet e-mail est déjà utilisé.';
-    }
+    // Vérification des entrées utilisateurs
+    $errors = validerDonneesUtilisateur($data);
 
-    // 4) Enregistrement si OK
+    // Enregistrement si aucune erreur de validation n'a été détectée
     if (empty($errors)) {
-        $data['mdp_securise'] = password_hash($data['motdepasse'], PASSWORD_DEFAULT);
-        if (enregistrerUtilisateur($data)) {
-            $user = connexionUtilisateur($email);
-            if ($user) {
-                // On stocke l’utilisateur en session
-                $_SESSION['user'] = $user;
-                header("Location: profile.php");
-                exit;
+        try {
+            // Hachage du mot de passe avant l'enregistrement
+            $data['mdp_securise'] = password_hash($data['motdepasse'], PASSWORD_DEFAULT);
+
+            // Tenter d'enregistrer le nouvel utilisateur
+            if (enregistrerUtilisateur($data)) {
+                // Si l'enregistrement réussit, tenter de connecter automatiquement l'utilisateur
+                $user = connexionUtilisateur($data['email']);
+                if ($user) {
+                    // Connexion et chargement du profil réussis : stocker en session et rediriger
+                    $_SESSION['user'] = $user;
+                    header("Location: profile.php");
+                    exit;
+                } else {
+                    // Cas improbable : enregistrement réussi mais impossible de charger le profil pour la connexion automatique
+                    array_push($errors, 'Impossible de charger votre profil pour la connexion automatique.');
+                }
             } else {
-                // Cas improbable si auth a réussi
-                $errors[] = 'Impossible de charger votre profil.';
+                // Si enregistrerUtilisateur retourne false
+                array_push($errors, 'Erreur lors de l\'enregistrement de l\'utilisateur.');
             }
-        } else {
-            $errors[] = 'Erreur lors de l\'enregistrement.';
+        } catch (Exception $e) {
+            // Gérer les exceptions levées (erreurs BDD, etc.)
+            logErreur("Page register.php ", $e->getMessage(), array('email' => $data['email'], ));
+            array_push($errors, 'Une erreur technique est survenue lors de l\'inscription. Veuillez réessayer plus tard.');
         }
     }
 }
@@ -124,15 +116,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="bg-white p-8 rounded-lg shadow-lg">
                 <h2 class="text-2xl font-bold text-center mb-6 text-slate-900">Formulaire d'inscription</h2>
 
-                <?php if (!empty($errors)): ?>
+                <?php if (!empty($errors)) { ?>
                     <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-6" role="alert">
                         <ul class="list-disc list-inside text-sm">
-                            <?php foreach ($errors as $error): ?>
+                            <?php foreach ($errors as $error) { ?>
                                 <li><?= htmlspecialchars($error) ?></li>
-                            <?php endforeach; ?>
+                            <?php } ?>
                         </ul>
                     </div>
-                <?php endif; ?>
+                <?php } ?>
 
                 <form action="register.php" method="post" class="space-y-6">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -165,9 +157,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             class="mt-1 w-full border border-slate-300 px-3 py-2 rounded-md focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label for="mdp_confirm" class="block text-sm font-medium text-slate-700">Confirmez le mot de
+                        <label for="confirm" class="block text-sm font-medium text-slate-700">Confirmez le mot de
                             passe <span class="text-red-600">*</span></label>
-                        <input type="password" name="mdp_confirm" id="mdp_confirm" required
+                        <input type="password" name="confirm" id="confirm" required
                             class="mt-1 w-full border border-slate-300 px-3 py-2 rounded-md focus:ring-2 focus:ring-blue-500">
                     </div>
                     <button type="submit" name="submit"

@@ -1,9 +1,20 @@
 <?php
-// --- Le code PHP reste inchangé ---
+/**
+ * @author Chokri Kadoussi
+ * @author Anssoumane Sissokho
+ * @date 2025-07-16
+ * @version 1.0.0
+ * 
+ * Présentation du fichier : Page de présentation des entraineurs
+ * 
+ * TODO: 
+ * 
+ */
 session_start();
 $pageTitle = 'Entraîneurs';
 $pageActuelle = 'team';
 require __DIR__ . '/fonction/fonctions.php';
+
 $trainers = getListeEntraineurs();
 ?>
 <!DOCTYPE html>

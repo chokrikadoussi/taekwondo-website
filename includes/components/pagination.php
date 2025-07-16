@@ -1,4 +1,16 @@
-<?php if ($totalPages > 1): ?>
+<?php
+/**
+ * @author Chokri Kadoussi
+ * @author Anssoumane Sissokho
+ * @date 2025-07-16
+ * @version 1.0.0
+ * 
+ * Présentation du fichier : Template de pagination pour les partials inclus dans profile
+ * 
+ */
+?>
+
+<?php if ($totalPages > 1) { ?>
     <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
         <!-- Mobile -->
         <div class="flex flex-1 justify-between sm:hidden">
@@ -33,27 +45,28 @@
                     </svg>
                 </a>
                 <!-- Pages -->
-                <?php for ($i = 1; $i <= $totalPages; $i++):
-                    if ($totalPages > 7 && $i > 2 && $i < $totalPages - 1):
-                        if ($i === 3): ?>
+                <?php for ($i = 1; $i <= $totalPages; $i++) {
+                    if ($totalPages > 7 && $i > 2 && $i < $totalPages - 1) {
+                        if ($i === 3) { ?>
                             <span
                                 class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-gray-300 ring-inset">…</span>
-                        <?php endif; ?>
-                        <?php if ($i < 3 || $i > $totalPages - 2): ?>
-                            <a href="relative inline-flex items-center px-4 py-2 text-sm font-semibold <?= $i === $pageNum
-                                ? 'z-10 bg-blue-600 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
-                                : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-offset-0' ?>">
+                        <?php } ?>
+                        <?php if ($i < 3 || $i > $totalPages - 2) { ?>
+                            <a
+                                href="relative inline-flex items-center px-4 py-2 text-sm font-semibold <?= $i === $pageNum
+                                    ? 'z-10 bg-blue-600 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                                    : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-offset-0' ?>">
                                 <?= $i ?>
                             </a>
-                        <?php endif; ?>
-                    <?php else: ?>
+                        <?php } ?>
+                    <?php } else { ?>
                         <a href="<?= $baseUrl ?>&p=<?= $i ?>" class="inline-flex items-center px-4 py-2 text-sm font-semibold <?= $i === $pageNum
-                              ? 'z-10 bg-blue-600 text-white'
-                              : 'text-gray-900 ring-1 ring-gray-300 hover:bg-gray-50' ?>">
+                                ? 'z-10 bg-blue-600 text-white'
+                                : 'text-gray-900 ring-1 ring-gray-300 hover:bg-gray-50' ?>">
                             <?= $i ?>
                         </a>
-                    <?php endif; ?>
-                <?php endfor; ?>
+                    <?php } ?>
+                <?php } ?>
                 <!-- Next icon -->
                 <a href="<?= $baseUrl ?>&p=<?= min($totalPages, $pageNum + 1) ?>"
                     class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-gray-300 ring-inset hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
@@ -68,4 +81,4 @@
             </nav>
         </div>
     </div>
-<?php endif; ?>
+<?php } ?>
