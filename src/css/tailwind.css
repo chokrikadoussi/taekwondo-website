@@ -1,0 +1,150 @@
+@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 1) Perspective & 3D */
+@layer utilities {
+  .perspective {
+    perspective: 1000px;
+  }
+  .transform-style-preserve-3d {
+    transform-style: preserve-3d;
+  }
+  .backface-hidden {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+}
+
+/* 2) Card component */
+@layer components {
+  .card-inner {
+    @apply relative w-full transition-transform duration-700;
+    transform-style: preserve-3d;
+  }
+  .card-front,
+  .card-back {
+    @apply backface-hidden bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col;
+  }
+  .card-back {
+    @apply absolute inset-0 p-6;
+    transform: rotateY(180deg);
+  }
+  /* état "flipped" */
+  .card-inner.flipped {
+    transform: rotateY(180deg);
+  }
+}
+
+/* 3) Mobile override (max-width: md) */
+@layer components {
+  @media (max-width: theme("screens.md")) {
+    /* Désactive la perspective et le 3D */
+    .perspective,
+    .card-inner {
+      perspective: none;
+      transform-style: initial;
+    }
+    /* Front et back deviennent des blocs normaux */
+    .card-front,
+    .card-back {
+      position: relative;
+      transform: none;
+    }
+    /* Cache la back par défaut */
+    .card-back {
+      display: none;
+    }
+    /* Quand flipped, on affiche la back et on masque la front */
+    .card-inner.flipped .card-back {
+      display: flex;
+    }
+    .card-inner.flipped .card-front {
+      display: none;
+    }
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: "Staatliches", sans-serif;
+  }
+}
+
+@layer utilities {
+  .h-hero {
+    height: calc(100vh - 70px);
+  }
+}
+
+@keyframes slide-cycle {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+
+  10% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  30% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  40% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+
+.slide-phrase {
+  position: absolute;
+  inset: 0;
+  /* couvre tout le parent */
+  display: flex;
+  align-items: center;
+  /* centre vertical */
+  /* justify-content left by default, modifiez si besoin */
+  animation: slide-cycle 9s ease-in-out infinite both;
+}
+
+.delay-0 {
+  animation-delay: 0s;
+}
+
+.delay-3 {
+  animation-delay: 3s;
+}
+
+.delay-6 {
+  animation-delay: 6s;
+}
+
+.cursor-trail {
+  position: absolute;
+  pointer-events: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(75, 132, 245, 0.9);
+  /* couleur de base */
+  box-shadow: 0 0 15px 15px rgba(75, 132, 245, 0.9);
+  /* petite lueur interne */
+  transform: translate(-50%, -50%) scale(1);
+  animation: trail-fade 0.6s ease-out forwards;
+}
+
+@keyframes trail-fade {
+  to {
+    transform: translate(-50%, -50%) scale(3);
+    opacity: 0;
+  }
+}
