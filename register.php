@@ -48,11 +48,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         $data['mdp_securise'] = password_hash($data['motdepasse'], PASSWORD_DEFAULT);
         if (enregistrerUtilisateur($data)) {
-            connexionUtilisateur($data['email']);
-            header("Location: profile.php");
-            exit;
+            $user = connexionUtilisateur($email);
+            if ($user) {
+                // On stocke l’utilisateur en session
+                $_SESSION['user'] = $user;
+                header("Location: profile.php");
+                exit;
+            } else {
+                // Cas improbable si auth a réussi
+                $errors[] = 'Impossible de charger votre profil.';
+            }
+        } else {
+            $errors[] = 'Erreur lors de l\'enregistrement.';
         }
-        $errors[] = 'Erreur lors de l\'enregistrement.';
     }
 }
 ?>

@@ -89,92 +89,102 @@ $actions = [
 
 <?php displayFlash() ?>
 
-<div class="flex justify-between items-center mb-6">
-    <h2 class="text-2xl font-bold text-gray-900">Gestion des cours</h2>
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <h2 class="text-2xl font-bold text-slate-800">Gestion des cours</h2>
     <?php if (!$showForm): ?>
         <form method="post">
             <input type="hidden" name="action" value="create">
-            <button class="bg-blue-600 px-4 py-2 rounded text-white hover:bg-blue-700">
-                <i class="fas fa-plus mr-1"></i>Ajouter
+            <button
+                class="w-full sm:w-auto flex items-center justify-center bg-blue-600 px-4 py-2 rounded-lg text-white font-semibold hover:bg-blue-700 transition">
+                <i class="fas fa-plus mr-2"></i>Ajouter un cours
             </button>
         </form>
     <?php endif; ?>
 </div>
 
 <?php if (!$showForm): ?>
-
-    <?php include __DIR__ . '/../components/table.php'; ?>
-    <?php include __DIR__ . '/../components/pagination.php'; ?>
-
+    <div class="bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden">
+        <?php include __DIR__ . '/../components/table.php'; ?>
+        <?php include __DIR__ . '/../components/pagination.php'; ?>
+    </div>
 <?php else: ?>
+    <div class="bg-white rounded-lg shadow-md p-6 border border-slate-200">
+        <h3 class="text-xl font-bold text-slate-800 mb-6">
+            <?= $isEdit ? 'Modifier le cours' : 'Créer un nouveau cours' ?>
+        </h3>
 
-    <?php if (!empty($errors)): ?>
-        <div class="mb-4 p-4 bg-red-100 text-red-800 rounded">
-            <ul class="list-disc pl-5">
-                <?php foreach ($errors as $e): ?>
-                    <li><?= htmlspecialchars($e, ENT_QUOTES) ?></li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-    <?php endif; ?>
-
-    <form method="post" class="space-y-4 bg-white p-6 rounded">
-        <input type="hidden" name="action" value="<?= $isEdit ? 'update' : 'store' ?>">
-        <?php if ($isEdit): ?><input type="hidden" name="id" value="<?= $id ?>"><?php endif ?>
-
-        <div class="grid lg:grid-cols-2 gap-4">
-            <div>
-                <label for="nom" class="block text-sm font-medium">Nom du cours</label>
-                <input type="text" name="nom" id="nom" required value="<?= htmlspecialchars($record['nom'], ENT_QUOTES) ?>"
-                    class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500">
+        <?php if (!empty($errors)): ?>
+            <div class="mb-6 p-4 bg-red-100 text-red-700 border-l-4 border-red-500 rounded-md" role="alert">
+                <p class="font-bold mb-2">Erreurs de validation :</p>
+                <ul class="list-disc pl-5 space-y-1">
+                    <?php foreach ($errors as $e): ?>
+                        <li><?= htmlspecialchars($e, ENT_QUOTES) ?></li>
+                    <?php endforeach; ?>
+                </ul>
             </div>
-            <div>
-                <label for="niveau" class="block text-sm font-medium">Niveau</label>
-                <select name="niveau" id="niveau" class="w-full border p-2 rounded">
-                    <?php foreach (['débutant', 'intermédiaire', 'avancé', 'tous niveaux'] as $lvl): ?>
-                        <option value="<?= $lvl ?>" <?= ($record['niveau'] ?? '') === $lvl ? 'selected' : '' ?>>
-                            <?= ucfirst($lvl) ?>
-                        </option>
-                    <?php endforeach ?>
-                </select>
-            </div>
-        </div>
+        <?php endif; ?>
 
-        <div class="grid lg:grid-cols-2 gap-4">
-            <div>
-                <label for="team_id" class="block text-sm font-medium">Entraîneur</label>
-                <select name="team_id" id="team_id" required
-                    class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500">
-                    <option value="">-- Choisir --</option>
-                    <?php foreach ($listTrainers as $t): ?>
-                        <option value="<?= $t['id'] ?>" <?= (string) ($record['team_id'] ?? '') === (string) $t['id'] ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($t['nom_complet'], ENT_QUOTES) ?>
-                        </option>
-                    <?php endforeach ?>
-                </select>
-            </div>
-            <div>
-                <label for="prix" class="block text-sm font-medium">Prix (€)</label>
-                <input type="number" name="prix" id="prix" step="0.01" required
-                    value="<?= htmlspecialchars($record['prix'], ENT_QUOTES) ?>"
-                    class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500">
-            </div>
-        </div>
+        <form method="post" class="space-y-6">
+            <input type="hidden" name="action" value="<?= $isEdit ? 'update' : 'store' ?>">
+            <?php if ($isEdit): ?><input type="hidden" name="id"
+                    value="<?= htmlspecialchars($id, ENT_QUOTES) ?>"><?php endif ?>
 
-        <div>
-            <label for="description" class="block text-sm font-medium">Description</label>
-            <textarea name="description" id="description" rows="4" required
-                class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"><?= htmlspecialchars($record['description'], ENT_QUOTES) ?></textarea>
-        </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="nom" class="block text-sm font-medium text-slate-700">Nom du cours</label>
+                    <input type="text" name="nom" id="nom" required
+                        value="<?= htmlspecialchars($record['nom'] ?? '', ENT_QUOTES) ?>"
+                        class="mt-1 w-full border border-slate-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="niveau" class="block text-sm font-medium text-slate-700">Niveau</label>
+                    <select name="niveau" id="niveau"
+                        class="mt-1 w-full border border-slate-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <?php foreach (['débutant', 'intermédiaire', 'avancé', 'tous niveaux'] as $lvl): ?>
+                            <option value="<?= $lvl ?>" <?= ($record['niveau'] ?? '') === $lvl ? 'selected' : '' ?>>
+                                <?= ucfirst($lvl) ?></option>
+                        <?php endforeach ?>
+                    </select>
+                </div>
+            </div>
 
-        <div class="flex space-x-4">
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">
-                <?= $isEdit ? 'Mettre à jour' : 'Créer' ?>
-            </button>
-            <a href="profile.php?page=classes"
-                class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded">
-                Annuler
-            </a>
-        </div>
-    </form>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="team_id" class="block text-sm font-medium text-slate-700">Entraîneur</label>
+                    <select name="team_id" id="team_id" required
+                        class="mt-1 w-full border border-slate-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">-- Choisir --</option>
+                        <?php foreach ($listTrainers as $t): ?>
+                            <option value="<?= $t['id'] ?>" <?= (string) ($record['team_id'] ?? '') === (string) $t['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($t['nom_complet'], ENT_QUOTES) ?>
+                            </option>
+                        <?php endforeach ?>
+                    </select>
+                </div>
+                <div>
+                    <label for="prix" class="block text-sm font-medium text-slate-700">Prix mensuel (€)</label>
+                    <input type="number" name="prix" id="prix" step="0.01" required
+                        value="<?= htmlspecialchars($record['prix'] ?? '', ENT_QUOTES) ?>"
+                        class="mt-1 w-full border border-slate-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <div>
+                <label for="description" class="block text-sm font-medium text-slate-700">Description</label>
+                <textarea name="description" id="description" rows="4" required
+                    class="mt-1 w-full border border-slate-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"><?= htmlspecialchars($record['description'] ?? '', ENT_QUOTES) ?></textarea>
+            </div>
+
+            <div class="flex flex-col-reverse sm:flex-row gap-4 pt-4 border-t border-slate-200">
+                <a href="profile.php?page=classes"
+                    class="w-full sm:flex-1 text-center px-5 py-2.5 font-semibold bg-slate-100 text-slate-800 rounded-lg hover:bg-slate-200 transition">
+                    Annuler
+                </a>
+                <button type="submit"
+                    class="w-full sm:flex-1 text-center px-5 py-2.5 font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    <?= $isEdit ? 'Mettre à jour le cours' : 'Créer le cours' ?>
+                </button>
+            </div>
+        </form>
+    </div>
 <?php endif; ?>

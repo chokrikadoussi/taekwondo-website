@@ -1,76 +1,79 @@
-<header class="sticky top-0 left-0 w-full bg-black text-white z-20 shadow">
-    <div class="mx-auto px-4 py-4 md:px-8 h-20 flex items-center justify-between">
-        <!-- Logo -->
-        <a href="index.php" class="flex items-center space-x-2" aria-label="Aller à l’accueil">
-            <img src="img/logo.png" alt="Logo Taekwondo Pise" class="h-10 w-auto mr-2">
-            <span class="text-xl font-bold md:hidden">Taekwondo Pise</span>
+<?php
+// On définit les liens de navigation dans un tableau pour une meilleure maintenabilité
+$navLinks = [
+    'Accueil' => ['url' => 'index.php', 'id' => 'home'],
+    'Le Club' => ['url' => 'about.php', 'id' => 'about'],
+    'Équipe' => ['url' => 'team.php', 'id' => 'team'],
+    'Actualités' => ['url' => 'news.php', 'id' => 'news'],
+    'Contact' => ['url' => 'contact.php', 'id' => 'contact'],
+];
+?>
+<header class="sticky top-0 left-0 w-full bg-black text-white z-50 shadow-md">
+    <div class="container mx-auto px-4 flex items-center justify-between h-[72px]">
+        <a href="index.php" class="flex items-center space-x-3" aria-label="Aller à l’accueil">
+            <img src="img/logo.png" alt="Logo Taekwondo Pise" class="h-10 w-auto">
+            <span class="text-xl font-bold">Taekwondo Pise</span>
         </a>
 
-        <!-- Bouton mobile -->
-        <button id="nav-toggle" aria-label="Ouvrir le menu" aria-expanded="false" class="md:hidden p-2 text-xl">
-            <i class="fa-solid fa-bars"></i>
-        </button>
-
-        <!-- Menu mobile (caché par défaut) -->
-        <div id="mobile-menu"
-            class="absolute top-full left-4 right-4 bg-black text-white rounded-b-lg shadow-lg hidden md:hidden z-20">
-            <ul class="flex flex-col divide-y divide-gray-800">
-                <li><a href="index.php" class="block px-4 py-3">Accueil</a></li>
-                <li><a href="about.php" class="block px-4 py-3">Le Club</a></li>
-                <li><a href="team.php" class="block px-4 py-3">Équipe</a></li>
-                <li><a href="news.php" class="block px-4 py-3">Actualités</a></li>
-                <li><a href="contact.php" class="block px-4 py-3">Contact</a></li>
-                <?php if (!isset($_SESSION['user']['id'])): ?>
-                    <li><a href="login.php" class="block px-4 py-3">Connexion</a></li>
-                    <li><a href="register.php" class="block px-4 py-3">Inscription</a></li>
-                <?php else: ?>
-                    <li><a href="profile.php" class="block px-4 py-3">Mon Compte</a></li>
+        <nav aria-label="Menu principal" class="hidden md:flex items-center gap-2">
+            <ul class="flex items-center gap-2">
+                <?php foreach ($navLinks as $label => $link): ?>
                     <li>
-                        <form action="logout.php" method="post" class="w-full">
-                            <button type="submit" name="submit-deconnect" class="w-full text-left px-4 py-3">
-                                Déconnexion
-                            </button>
-                        </form>
+                        <a href="<?= $link['url'] ?>" class="px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200
+                                  <?= ($pageActuelle === $link['id'])
+                                      ? 'bg-white text-black'
+                                      : 'text-slate-300 hover:bg-slate-800 hover:text-white' ?>">
+                            <?= $label ?>
+                        </a>
                     </li>
-                <?php endif; ?>
+                <?php endforeach; ?>
             </ul>
+        </nav>
+
+        <div class="hidden md:flex items-center gap-4">
+            <?php if (!isset($_SESSION['user']['id'])): ?>
+                <a href="login.php"
+                    class="px-5 py-2 text-sm font-semibold bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition">Connexion</a>
+                <a href="register.php"
+                    class="px-5 py-2 text-sm font-semibold bg-white text-black rounded-lg hover:bg-slate-200 transition">Inscription</a>
+            <?php else: ?>
+                <a href="profile.php"
+                    class="px-5 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Mon
+                    Compte</a>
+            <?php endif; ?>
         </div>
 
+        <button id="nav-toggle" aria-label="Ouvrir le menu" aria-expanded="false"
+            class="md:hidden p-2 text-xl relative z-50">
+            <i id="nav-toggle-icon" class="fas fa-bars transition-transform duration-300"></i>
+        </button>
+    </div>
 
-        <!-- Liens de navigation -->
-        <nav aria-label="Menu principal" class="hidden md:flex md:items-center space-y-4 md:space-y-0 md:space-x-8">
-            <ul class="flex space-x-2 md:space-x-2 lg:space-x-2">
-                <li><a href="index.php"
-                        class="block px-5 py-2 rounded-md text-sm font-medium <?= $pageActuelle === 'home' ? 'bg-white text-black' : 'hover:bg-gray-800 hover:text-accent' ?>">Accueil</a>
-                </li>
-                <li><a href="about.php"
-                        class="block px-5 py-2 rounded-md text-sm font-medium <?= $pageActuelle === 'about' ? 'bg-white text-black' : 'hover:bg-gray-800 hover:text-accent' ?>">Le
-                        Club</a></li>
-                <li><a href="team.php"
-                        class="block px-5 py-2 rounded-md text-sm font-medium <?= $pageActuelle === 'team' ? 'bg-white text-black' : 'hover:bg-gray-800 hover:text-accent' ?>">Équipe</a>
-                </li>
-                <li><a href="news.php"
-                        class="block px-5 py-2 rounded-md text-sm font-medium <?= $pageActuelle === 'news' ? 'bg-white text-black' : 'hover:bg-gray-800 hover:text-accent' ?>">Actualités</a>
-                </li>
-                <li><a href="contact.php"
-                        class="block px-5 py-2 rounded-md text-sm font-medium <?= $pageActuelle === 'contact' ? 'bg-white text-black' : 'hover:bg-gray-800 hover:text-accent' ?>">Contact</a>
+    <div id="mobile-menu" class="fixed top-0 left-0 w-full h-full bg-black/90 backdrop-blur-sm z-40
+                transform -translate-x-full transition-transform duration-300 ease-in-out md:hidden">
+        <div class="flex justify-end p-4">
+            <button id="nav-close" aria-label="Fermer le menu" class="p-2 text-2xl text-white">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <nav>
+            <ul class="flex flex-col items-center justify-center h-full gap-y-6 -mt-16">
+                <?php foreach ($navLinks as $label => $link): ?>
+                    <li><a href="<?= $link['url'] ?>"
+                            class="text-2xl font-bold text-slate-200 hover:text-white"><?= $label ?></a></li>
+                <?php endforeach; ?>
+
+                <li class="pt-8">
+                    <?php if (!isset($_SESSION['user']['id'])): ?>
+                        <a href="login.php"
+                            class="px-8 py-3 text-lg font-semibold bg-white text-black rounded-lg hover:bg-slate-200 transition">Connexion</a>
+                    <?php else: ?>
+                        <a href="profile.php"
+                            class="px-8 py-3 text-lg font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Mon
+                            Compte</a>
+                    <?php endif; ?>
                 </li>
             </ul>
         </nav>
-        <div class="hidden md:flex items-center space-x-2 md:space-x-4 lg:space-x-4">
-            <?php if (!isset($_SESSION['user']['id'])) { ?>
-                <a href="login.php"
-                    class="block px-7 py-2 text-sm font-medium bg-white text-black rounded-md hover:bg-gray-100 transition">Connexion</a>
-                <a href="register.php" class="block px-3 py-2 rounded-md text-sm font-medium">Inscription</a>
-            <?php } else { ?>
-                <a href="profile.php" class="block px-3 py-2 rounded-md text-sm font-medium">Mon Compte</a>
-                <form action="logout.php" method="post" class="inline">
-                    <button type="submit" name="submit-deconnect"
-                        class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition font-medium">
-                        Déconnexion
-                    </button>
-                </form>
-            <?php } ?>
-        </div>
     </div>
 </header>

@@ -8,3 +8,5 @@
 <link href="css/styles.css" rel="stylesheet">
 <link rel="icon" href="img/icon-page" type="image/x-icon">
 <script src="https://kit.fontawesome.com/ad02441365.js" crossorigin="anonymous"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&family=Staatliches&display=swap"
+    rel="stylesheet">

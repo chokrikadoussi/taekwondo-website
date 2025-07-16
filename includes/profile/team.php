@@ -87,78 +87,85 @@ $actions = [
 
 <?php displayFlash() ?>
 
-<div class="flex justify-between items-center mb-6">
-    <h2 class="text-2xl font-bold text-gray-900">Gestion des entraîneurs</h2>
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <h2 class="text-2xl font-bold text-slate-800">Gestion des entraîneurs</h2>
     <?php if (!$showForm): ?>
         <form method="post">
             <input type="hidden" name="action" value="create">
-            <button class="bg-blue-600 px-4 py-2 rounded text-white hover:bg-blue-700">
-                <i class="fas fa-plus mr-1"></i>Ajouter
+            <button
+                class="w-full sm:w-auto flex items-center justify-center bg-blue-600 px-4 py-2 rounded-lg text-white font-semibold hover:bg-blue-700 transition">
+                <i class="fas fa-plus mr-2"></i>Ajouter un entraîneur
             </button>
         </form>
     <?php endif; ?>
 </div>
 
 <?php if (!$showForm): ?>
-
-    <!-- Tableau générique -->
-    <?php include __DIR__ . '/../components/table.php'; ?>
-    <?php include __DIR__ . '/../components/pagination.php'; ?>
-
+    <div class="bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden">
+        <?php include __DIR__ . '/../components/table.php'; ?>
+        <?php include __DIR__ . '/../components/pagination.php'; ?>
+    </div>
 <?php else: ?>
+    <div class="bg-white rounded-lg shadow-md p-6 border border-slate-200">
+        <h3 class="text-xl font-bold text-slate-800 mb-6">
+            <?= $isEdit ? 'Modifier l\'entraîneur' : 'Créer un nouvel entraîneur' ?>
+        </h3>
 
-    <!-- Affichage des erreurs -->
-    <?php if (!empty($errors)): ?>
-        <div class="mb-4 p-4 bg-red-100 text-red-800 rounded">
-            <ul class="list-disc pl-5">
-                <?php foreach ($errors as $e): ?>
-                    <li><?= htmlspecialchars($e, ENT_QUOTES) ?></li>
-                <?php endforeach ?>
-            </ul>
-        </div>
-    <?php endif; ?>
+        <?php if (!empty($errors)): ?>
+            <div class="mb-6 p-4 bg-red-100 text-red-700 border-l-4 border-red-500 rounded-md" role="alert">
+                <p class="font-bold mb-2">Erreurs de validation :</p>
+                <ul class="list-disc pl-5 space-y-1">
+                    <?php foreach ($errors as $e): ?>
+                        <li><?= htmlspecialchars($e, ENT_QUOTES) ?></li>
+                    <?php endforeach ?>
+                </ul>
+            </div>
+        <?php endif; ?>
 
-    <!-- Formulaire create/edit -->
-    <form method="post" class="space-y-4 bg-white p-6 rounded">
-        <input type="hidden" name="action" value="<?= $isEdit ? 'update' : 'store' ?>">
-        <?php if ($isEdit): ?>
-            <input type="hidden" name="id" value="<?= $id ?>">
-        <?php endif ?>
+        <form method="post" class="space-y-6">
+            <input type="hidden" name="action" value="<?= $isEdit ? 'update' : 'store' ?>">
+            <?php if ($isEdit): ?><input type="hidden" name="id"
+                    value="<?= htmlspecialchars($id, ENT_QUOTES) ?>"><?php endif ?>
 
-        <div>
-            <label for="prenom" class="block text-sm font-medium">Prénom</label>
-            <input type="text" name="prenom" id="prenom" required
-                value="<?= htmlspecialchars($record['prenom'] ?? '', ENT_QUOTES) ?>"
-                class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500">
-        </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="prenom" class="block text-sm font-medium text-slate-700">Prénom</label>
+                    <input type="text" name="prenom" id="prenom" required
+                        value="<?= htmlspecialchars($record['prenom'] ?? '', ENT_QUOTES) ?>"
+                        class="mt-1 w-full border border-slate-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="nom" class="block text-sm font-medium text-slate-700">Nom</label>
+                    <input type="text" name="nom" id="nom" required
+                        value="<?= htmlspecialchars($record['nom'] ?? '', ENT_QUOTES) ?>"
+                        class="mt-1 w-full border border-slate-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
 
-        <div>
-            <label for="nom" class="block text-sm font-medium">Nom</label>
-            <input type="text" name="nom" id="nom" required
-                value="<?= htmlspecialchars($record['nom'] ?? '', ENT_QUOTES) ?>"
-                class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500">
-        </div>
+            <div>
+                <label for="bio" class="block text-sm font-medium text-slate-700">Biographie</label>
+                <textarea name="bio" id="bio" rows="5" required
+                    class="mt-1 w-full border border-slate-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"><?= htmlspecialchars($record['bio'] ?? '', ENT_QUOTES) ?></textarea>
+            </div>
 
-        <div>
-            <label for="bio" class="block text-sm font-medium">Biographie</label>
-            <textarea name="bio" id="bio" rows="4" required
-                class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"><?= htmlspecialchars($record['bio'] ?? '', ENT_QUOTES) ?></textarea>
-        </div>
+            <div>
+                <label for="photo" class="block text-sm font-medium text-slate-700">URL de la Photo (ex:
+                    `img/nom.jpg`)</label>
+                <input type="text" name="photo" id="photo"
+                    value="<?= htmlspecialchars($record['photo'] ?? '', ENT_QUOTES) ?>"
+                    class="mt-1 w-full border border-slate-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
 
-        <div>
-            <label for="photo" class="block text-sm font-medium">URL Photo (optionnel)</label>
-            <input type="text" name="photo" id="photo" value="<?= htmlspecialchars($record['photo'] ?? '', ENT_QUOTES) ?>"
-                class="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500">
-        </div>
-
-        <div class="flex space-x-4">
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">
-                <?= $isEdit ? 'Mettre à jour' : 'Créer' ?>
-            </button>
-            <a href="profile.php?page=team"
-                class="inline-block bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded">
-                Annuler
-            </a>
-        </div>
-    </form>
+            <div class="flex flex-col-reverse sm:flex-row gap-4 pt-4 border-t border-slate-200">
+                <a href="profile.php?page=team"
+                    class="w-full sm:flex-1 text-center px-5 py-2.5 font-semibold bg-slate-100 text-slate-800 rounded-lg hover:bg-slate-200 transition">
+                    Annuler
+                </a>
+                <button type="submit"
+                    class="w-full sm:flex-1 text-center px-5 py-2.5 font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    <?= $isEdit ? 'Mettre à jour' : 'Créer' ?>
+                </button>
+            </div>
+        </form>
+    </div>
 <?php endif; ?>

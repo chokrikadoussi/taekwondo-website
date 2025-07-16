@@ -129,6 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </main>
     <?php include __DIR__ . '/includes/footer.php'; ?>
     <script src="js/main.js" defer></script>
+    <script src="js/particules.js" defer></script>
 </body>
 
 </html>

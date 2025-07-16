@@ -190,7 +190,7 @@ function connexionUtilisateur(string $email): array|null
             'prenom' => $user['prenom'],
             'nom' => $user['nom'],
             'role' => $user['role'],
-            'date_creation' => $user['date_creation'],
+            'date_creation' => $user['created_at'],
         );
 
     } catch (PDOException $e) {
