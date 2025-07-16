@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : mer. 16 juil. 2025 à 11:12
+-- Généré le : mer. 16 juil. 2025 à 18:40
 -- Version du serveur : 10.6.21-MariaDB
 -- Version de PHP : 7.4.33
 
@@ -96,11 +96,11 @@ CREATE TABLE `posts` (
 --
 
 INSERT INTO `posts` (`id`, `titre`, `contenu`, `photo`, `auteur`, `created_at`, `updated_at`) VALUES
-(13, 'Portes ouvertes du club', 'Venez découvrir nos installations et rencontrer nos entraîneurs lors de nos journées portes ouvertes les 2 et 3 septembre ! Au programme : démonstrations, initiations et inscriptions.', 'black-belt.jpg', 5, '2025-07-16 13:05:00', '2025-07-16 13:05:00'),
-(14, 'Nouveau partenariat avec la Mairie', 'Le Taekwondo Club St Priest est fier d\'annoncer son nouveau partenariat avec la Mairie pour le développement du sport en milieu scolaire. Des ateliers seront mis en place dès la rentrée.', NULL, 21, '2025-07-16 13:06:00', '2025-07-16 13:06:00'),
+(13, 'Portes ouvertes du club', 'Venez découvrir nos installations et rencontrer nos entraîneurs lors de nos journées portes ouvertes les 2 et 3 septembre ! Au programme : démonstrations, initiations et inscriptions.', 'black-belt.jpg', 5, '2025-07-16 13:05:00', '2025-07-16 18:33:25'),
+(14, 'Nouveau partenariat avec la Mairie', 'Le Taekwondo Club St Priest est fier d\'annoncer son nouveau partenariat avec la Mairie pour le développement du sport en milieu scolaire. Des ateliers seront mis en place dès la rentrée.', 'water.jpg', 21, '2025-07-16 13:06:00', '2025-07-16 18:32:43'),
 (15, 'Retour en images : notre gala annuel', 'Revivez les meilleurs moments de notre gala annuel en photos et vidéos ! Une soirée riche en émotions et en démonstrations spectaculaires.', 'hero-left.jpg', 6, '2025-07-16 13:07:00', '2025-07-16 13:07:00'),
 (16, 'Succès au tournoi inter-clubs !', 'Notre équipe a brillé lors du récent tournoi inter-clubs, remportant plusieurs médailles d\'or et d\'argent. Un grand bravo à tous les participants et à nos entraîneurs !', 'coach_enfant.png', 5, '2025-07-16 11:10:09', '2025-07-16 11:10:09'),
-(17, 'Focus sur les poomses : article technique', 'Découvrez l\'importance des poomses dans la pratique du Taekwondo et comment les maîtriser pour améliorer votre technique et votre concentration.', NULL, 6, '2025-07-16 11:10:09', '2025-07-16 11:10:09');
+(17, 'Focus sur les poomses : article technique', 'Découvrez l\'importance des poomses dans la pratique du Taekwondo et comment les maîtriser pour améliorer votre technique et votre concentration.', 'golf.jpg', 6, '2025-07-16 11:10:09', '2025-07-16 18:32:58');
 
 -- --------------------------------------------------------
 
@@ -118,6 +118,9 @@ CREATE TABLE `post_tag` (
 --
 
 INSERT INTO `post_tag` (`post_id`, `tag_id`) VALUES
+(13, 26),
+(13, 27),
+(14, 23),
 (15, 20),
 (16, 18),
 (16, 19),
@@ -164,8 +167,11 @@ CREATE TABLE `tags` (
 --
 
 INSERT INTO `tags` (`id`, `name`) VALUES
+(26, 'club'),
+(23, 'ecole'),
 (21, 'entraînement'),
 (18, 'événement'),
+(27, 'loisir'),
 (20, 'partenariat'),
 (22, 'poomse'),
 (19, 'stage');
@@ -192,7 +198,8 @@ CREATE TABLE `team` (
 
 INSERT INTO `team` (`id`, `prenom`, `nom`, `bio`, `photo`, `created_at`, `updated_at`) VALUES
 (4, 'Marie', 'Dubois', 'Marie Dubois est une ancienne championne nationale de Taekwondo. Sa passion pour l\'enseignement l\'a conduite à devenir coach. Elle se spécialise dans la préparation physique et mentale de jeunes athlètes.', 'coach-f-1.jpg', '2025-07-16 13:00:00', '2025-07-16 13:00:00'),
-(5, 'Pierre', 'Leroy', 'Pierre Leroy, 7ème Dan, est un maître respecté dans la communauté Taekwondo. Il apporte une richesse d\'expérience et une approche traditionnelle de l\'art martial à ses élèves, jeunes et moins jeunes.', 'coach-m-1.jpg', '2025-07-16 13:01:00', '2025-07-16 13:01:00');
+(5, 'Pierre', 'Leroy', 'Pierre Leroy, 7ème Dan, est un maître respecté dans la communauté Taekwondo. Il apporte une richesse d\'expérience et une approche traditionnelle de l\'art martial à ses élèves, jeunes et moins jeunes.', 'coach-m-3.jpg', '2025-07-16 13:01:00', '2025-07-16 18:31:17'),
+(7, 'Hassan', 'Benali', 'Hassan Benali commence le Taekwondo à l’âge de 12 ans dans un club local de la région lyonnaise. Très vite, il se distingue en compétition régionale, puis nationale. Il obtient sa ceinture noire à 17 ans et rejoint l’équipe technique régionale quelques années plus tard. \r\n\r\nEn parallèle de son activité de compétiteur, il se forme à l’enseignement et obtient son diplôme d’État (CQP puis DEJEPS). Depuis plus de 10 ans, il encadre des groupes enfants, ados et adultes, en mettant l’accent sur la progression individuelle, la cohésion du groupe et le plaisir de pratiquer. \r\n\r\nIl continue à se former régulièrement (stages fédéraux, arbitrage, préparation physique) pour garantir une qualité d’enseignement en phase avec les dernières recommandations de la Fédération Française de Taekwondo.', 'coach-m-2.jpg', '2025-07-16 18:30:55', '2025-07-16 18:31:10');
 
 -- --------------------------------------------------------
 
@@ -223,7 +230,8 @@ INSERT INTO `users` (`id`, `email`, `mdp_securise`, `prenom`, `nom`, `role`, `cr
 (5, 'secretaire@tkd-st-priest.fr', '$2y$10$mS4gWme0I9.9efxzWnL6nOjz7YzhFQDHP0E8hXhH02zdlghRjInL.', 'Julie', 'Perrin', 'admin', '2025-07-06 15:54:00', '2025-07-15 21:30:00'),
 (6, 'admin@tkd-st-priest.fr', '$2y$10$mS4gWme0I9.9efxzWnL6nOjz7YzhFQDHP0E8hXhH02zdlghRjInL.', 'Benoît', 'Lefevre', 'admin', '2025-07-06 15:55:00', '2025-07-15 21:30:00'),
 (21, 'admin@admin.fr', '$2y$10$MSAy.mZkkEkZB8fYTv48Q.IoO9suUMEMj/e6SRJtRi2xExyiVbRce', 'Olivier', 'Labonne', 'admin', '2025-07-15 19:46:30', '2025-07-16 11:05:55'),
-(22, 'membre@membre.com', '$2y$10$fbU94wkHlEv25SgKEHruXuVsQpD1BgetaE0NHYU1F84.5BHv2p58q', 'Anssoumane', 'Sissokho', 'membre', '2025-07-16 11:03:51', '2025-07-16 11:03:51');
+(22, 'membre@membre.com', '$2y$10$fbU94wkHlEv25SgKEHruXuVsQpD1BgetaE0NHYU1F84.5BHv2p58q', 'Anssoumane', 'Sissokho', 'membre', '2025-07-16 11:03:51', '2025-07-16 11:03:51'),
+(23, 'farid.martin@exemple.fr', '$2y$10$z8vavTy8jj0gtuAHFArU..pckVVXLslIjuOfA/CGduYqj10odmmgS', 'Farid', 'Martin', 'membre', '2025-07-16 18:38:14', '2025-07-16 18:38:14');
 
 --
 -- Index pour les tables déchargées
@@ -315,19 +323,19 @@ ALTER TABLE `schedules`
 -- AUTO_INCREMENT pour la table `tags`
 --
 ALTER TABLE `tags`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT pour la table `team`
 --
 ALTER TABLE `team`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT pour la table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- Contraintes pour les tables déchargées
