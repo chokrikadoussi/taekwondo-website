@@ -102,7 +102,6 @@ $current = array(
   'date_creation' => $_SESSION['user']['date_creation'] ?? '',
 );
 ?>
-?>
 
 <div class="space-y-6">
   <?php displayFlash(); // Les messages flash sont conservés ?>
